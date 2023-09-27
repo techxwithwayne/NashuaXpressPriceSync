@@ -75,11 +75,29 @@ WSGI_APPLICATION = 'NashuaXpress.wsgi.application'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'default': {
+            'ENGINE': 'mssql',
+            'NAME': 'NashuaXpressDB',
+            'USER': 'wayne',
+            'PASSWORD': 'techx@2023',
+            'HOST': 'NASHUA-WAYNE',
+            'PORT': '',
+
+            'OPTIONS': {
+                'driver': 'ODBC Driver 17 for SQL Server',
+            },
+        },
     }
-}
+
+# after inserting the above database factors, run the following to get the ODBC driver above:
+# py manage.py shell
+# import os, sys
+# import pyodbc
+# for driver in pyodbc.drivers():
+#       print(driver)
+# hit enter twice
+# exit()
+# copy and paste the ODBC Driver above
 
 
 # Password validation

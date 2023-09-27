@@ -23,7 +23,7 @@ def costfactors(request):
 
 # pages to create
 def uploadplist(request):
-    return render(request, 'ps_blocks/under_maintenance.html')
+    return render(request, 'ps_blocks/uploadpricelist.html')
 
 def viewpricelist(request):
     return render(request, 'ps_blocks/under_maintenance.html')
