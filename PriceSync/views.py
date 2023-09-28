@@ -1,5 +1,11 @@
 from django.shortcuts import render
 from django.http import HttpResponse
+from tablib import Dataset
+from .models import PriceList
+from .resources import pricelistResource
+
+
+
 
 # create your views here
 def dashboard(request):
@@ -23,6 +29,19 @@ def costfactors(request):
 
 # pages to create
 def uploadplist(request):
+    if request.method == 'POST':
+        pricelist_resource = pricelistResource()
+        dataset = Dataset()
+        new_pricelist = request.FILES['my_file']
+        imported_data = dataset.load(new_pricelist.read(), format='xlsx')
+        for data in imported_data:
+            value = PriceList(
+                data[0],
+                data[1],
+                data[2]
+            )
+            value.save()
+
     return render(request, 'ps_blocks/uploadpricelist.html')
 
 def viewpricelist(request):
