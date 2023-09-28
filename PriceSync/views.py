@@ -4,6 +4,9 @@ from tablib import Dataset
 from .models import PriceList
 from .resources import pricelistResource
 
+import pyodbc
+
+
 
 
 
@@ -45,7 +48,14 @@ def uploadplist(request):
     return render(request, 'ps_blocks/uploadpricelist.html')
 
 def viewpricelist(request):
-    return render(request, 'ps_blocks/under_maintenance.html')
+    conn = pyodbc.connect('Driver={ODBC Driver 17 for SQL Server};'
+                          'Server=NASHUA-WAYNE;'
+                          'Database=NashuaXpressDB;'
+                          'Trusted_Connection=yes;')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM PriceSync_pricelist")
+    result = cursor.fetchall()
+    return render(request, 'ps_blocks/pricelist.html', {'PriceList':result})
 
 def updatecurrencyrates(request):
     return render(request, 'ps_blocks/under_maintenance.html')
