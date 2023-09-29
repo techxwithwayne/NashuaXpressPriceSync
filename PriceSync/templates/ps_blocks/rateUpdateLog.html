@@ -95,13 +95,14 @@
     </tr>
     </thead>
     <tbody>
+        {% for data in ExchangeRate %}
     <tr>
     <td>1</td>
-    <td>16 Sept 2023</td>
-    <td>USD</td>
-    <td class="text-red">100.00</td>
-    <td>Keegan</td>
-    <td>16 Sept 2023</td>
+    <td>{{ data.rateDate }}</td>
+    <td>{{ data.rateBaseCurrency }}_{{ data.rateTargetCurrency }}</td>
+    <td class="text-red">{{ data.rateValue }}</td>
+    <td>{{ data.rateUpdatedOn }}</td>
+    <td>{{ data.rateUpdatedBy }}</td>
     <td class="text-end">
     <a class="me-3" href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#editpayment">
     <img src="{% static 'assets/img/icons/edit.svg' %}" alt="img">
@@ -111,6 +112,7 @@
     </a>
     </td>
     </tr>
+    {% endfor %}
     </tbody>
     </table>
     </div>
@@ -125,44 +127,82 @@
 <div class="modal fade" id="addpayment" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" role="document">
     <div class="modal-content">
+    	<form method="POST">
+            {% csrf_token %}
     <div class="modal-header">
-    <h5 class="modal-title">Add Daily Currency Rate</h5>
+    <h5 class="modal-title">Currency Exchange Rate Converter</h5>
     <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
     <span aria-hidden="true">&times;</span>
     </button>
     </div>
     <div class="modal-body">
     <div class="row">
-        <div class="col-12">
-        <div class="alert alert-danger" role="alert">
-            <strong>Holy guacamole!</strong> alert—check it out!
-          </div>
-        </div>
     <div class="col-12">
     <div class="form-group">
-    <label>Rate Value</label>
-    <input type="text" required>
+    <label>Date of Exchange Rate</label>
+    <input type="date" name="ratedate" class="form-control" required>
     </div>
     </div>
 
     <div class="col-12">
-    <div class="form-group mb-0">
-    <label>Rate Currency</label>
-    <select class="form-select" required>
-    <option> USD</option>
-    <option> ZAR</option>
+    <div class="form-group">
+    <label>Source Currency</label>
+    <select class="form-select" name="basecurrency" required>
+    <option value="USD">USD</option>
+    <option value="ZAR">ZAR</option>
+    <option value="ZWL">ZWL</option>
     </select>
     </div>
     </div>
 
+
+    <div class="col-12">
+        <div class="form-group">
+        <label>Target Currency</label>
+        <select class="form-select" name="targetcurrency" required>
+        <option value="ZWL">ZWL</option>
+        <option value="USD">USD</option>
+        <option value="ZAR">ZAR</option>
+        </select>
+        </div>
+        </div>
+
+        <div class="col-12">
+            <div class="form-group">
+            <label>Conversion Rate</label>
+            <input type="text" id="decimalInput" name="ratevalue" oninput="validateDecimal(this)" class="form-control" placeholder="Enter current rate amount..." required>
+            </div>
+            </div>
+
     </div>
     </div>
+
     <div class="modal-footer ">
-    <button type="button" class="btn btn-submit">Add Rate</button>
+    <button type="submit" class="btn btn-submit">Add Exchange Rate</button>
     <button type="button" class="btn btn-cancel" data-bs-dismiss="modal">Cancel</button>
     </div>
+    </form>
     </div>
     </div>
     </div>
 <!-- modal add end-->
+
+
+
+<script>
+    function validateDecimal(input) {
+        // Remove any non-numeric and non-decimal characters
+        input.value = input.value.replace(/[^0-9.,]/g, '');
+    
+        // Replace commas with periods (if your locale uses commas as decimals)
+        input.value = input.value.replace(/,/g, '.');
+    
+        // Ensure there's only one decimal point
+        var parts = input.value.split('.');
+        if (parts.length > 2) {
+            input.value = parts[0] + '.' + parts.slice(1).join('');
+        }
+    }
+    
+</script>
 {% endblock %}
