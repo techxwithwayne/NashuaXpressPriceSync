@@ -4,7 +4,7 @@
 <div class="page-header">
     <div class="page-title">
     <h4>Supplier Price List Upload</h4>
-    <h6>Batch supplier pricelist file upload</h6>
+    <h6>Effortlessly upload and manage supplier price lists.</h6>
     </div>
     </div>
 
@@ -12,7 +12,7 @@
     <div class="card">
         <div class="card-header">
         <h5 class="card-title">Upload Supplier Price List</h5>
-        <p class="card-text">Please use this form to upload a supplier's price list from a CSV file. Enter the supplier's name, the currency used in the price list, and choose the CSV file to upload. Ensure that the xlsx file follows the correct format for successful processing. <a href="#">Click here to view</a> the required xlsx format </p>
+        <p class="card-text">Please use this form to upload a supplier's price list from an excel file. Enter the supplier's name, the currency used in the price list, and choose the excel file to upload. Ensure that the excel file follows the correct format for successful processing. <a href="{% static 'assets/files/pricelist_sample.xlsx' %}">Click here to view</a> the required xlsx format </p>
         </div>
         <div class="card-body">
         <div class="row">
@@ -33,7 +33,7 @@
         </div>
         <div class="mb-3">
         <select class="form-select" name="pl_currency" required aria-label="select example">
-        <option value>Open this select menu</option>
+        <option value>Select valid currency below</option>
         <option value="ZAR">ZAR</option>
         <option value="ZWL">ZWL</option>
         <option value="USD">USD</option>
@@ -42,7 +42,7 @@
         </div>
         <div class="mb-3">
         <input type="file" class="form-control" aria-label="file example" name="my_file" required>
-        <div class="invalid-feedback">Please upload a valid CSV file containing the price list.</div>
+        <div class="invalid-feedback">Please upload a valid excel file containing the price list.</div>
         </div>
 
 

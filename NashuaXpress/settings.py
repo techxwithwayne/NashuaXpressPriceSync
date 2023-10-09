@@ -82,7 +82,7 @@ DATABASES = {
             'ENGINE': 'mssql',
             'NAME': 'NashuaXpressDB',
             'USER': 'wayne',
-            'PASSWORD': 'techx@2023',
+            'PASSWORD': 'P@ssw0rd123',
             'HOST': 'NASHUA-WAYNE',
             'PORT': '',
 
@@ -90,6 +90,18 @@ DATABASES = {
                 'driver': 'ODBC Driver 17 for SQL Server',
             },
         },
+        'remote': {
+        'ENGINE': 'mssql',
+        'NAME': 'BPO2_NASH_TEST',
+        'USER': 'sa',
+        'PASSWORD': 'Kippey1',
+        'HOST': 'NASHUA-EVA',  # Specify the IP address or hostname of the remote server
+        'PORT': '',  # Specify the port on which SQL Server is running (usually 1433)
+
+        'OPTIONS': {
+                'driver': 'ODBC Driver 17 for SQL Server',
+            },
+    },
     }
 
 # after inserting the above database factors, run the following to get the ODBC driver above:

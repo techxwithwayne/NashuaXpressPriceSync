@@ -4,7 +4,7 @@
 
 <div class="page-header">
     <div class="page-title">
-    <h4>Current Product Price List</h4>
+    <h4>XPress Inventory List</h4>
     <h6>Access and review the most up-to-date product pricing information.</h6>
     </div>
     <div class="page-btn">
@@ -91,7 +91,6 @@
     <tr>
     <th></th>
     <th>Product Code</th>
-    <th>Supplier</th>
     <th>Description</th>
     <th>Currency</th>
     <th>Supplier Cost</th>
@@ -99,14 +98,13 @@
     </tr>
     </thead>
     <tbody>
-        {% for data in PriceList %}
+        {% for data in results %}
     <tr>
     <td>{{ forloop.counter }}</td>
     <td>{{ data.prodCode }}</td>
-    <td>{{ data.prodSupplier }}</td>
     <td>{{ data.prodDesc|slice:"0:30" }}{% if data.prodDesc|length > 30 %}...{% endif %}</td>
-    <td>{{ data.prodCurrency }}</td>
-    <td>{{ data.prodPrice }}</td>
+    <td>{{ data.prodCategory }}</td>
+    <td>{{ data.prodDOC }}</td>
     <td class="text-end">
     <a class="me-3" href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#editpayment">
     <img src="{% static 'assets/img/icons/edit.svg' %}" alt="img">

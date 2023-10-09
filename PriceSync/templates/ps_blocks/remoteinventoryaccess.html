@@ -4,13 +4,13 @@
 
 <div class="page-header">
     <div class="page-title">
-    <h4>Current Product Price List</h4>
+    <h4>BPO Inventory List</h4>
     <h6>Access and review the most up-to-date product pricing information.</h6>
     </div>
     <div class="page-btn">
         <form method="POST">
             {% csrf_token %}
-        <button type="submit" class="btn btn-added"><img src="{% static 'assets/img/icons/delete.svg' %}" alt="img" class="me-1">Clear PriceList Table</button>
+        <button type="submit" class="btn btn-added"><img src="{% static 'assets/img/icons/download.svg' %}" alt="img" class="me-1">Sync to Xpress Inventory</button>
     </form>
     </div>
     </div>
@@ -91,30 +91,19 @@
     <tr>
     <th></th>
     <th>Product Code</th>
-    <th>Supplier</th>
     <th>Description</th>
-    <th>Currency</th>
-    <th>Supplier Cost</th>
-    <th class="text-center">Action</th>
+    <th>Category</th>
+    <th>Created on</th>
     </tr>
     </thead>
     <tbody>
-        {% for data in PriceList %}
+        {% for data in results %}
     <tr>
     <td>{{ forloop.counter }}</td>
-    <td>{{ data.prodCode }}</td>
-    <td>{{ data.prodSupplier }}</td>
-    <td>{{ data.prodDesc|slice:"0:30" }}{% if data.prodDesc|length > 30 %}...{% endif %}</td>
-    <td>{{ data.prodCurrency }}</td>
-    <td>{{ data.prodPrice }}</td>
-    <td class="text-end">
-    <a class="me-3" href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#editpayment">
-    <img src="{% static 'assets/img/icons/edit.svg' %}" alt="img">
-    </a>
-    <a class="me-3 confirm-text" href="javascript:void(0);">
-    <img src="{% static 'assets/img/icons/delete.svg' %}" alt="img">
-    </a>
-    </td>
+    <td>{{ data.fldInventoryCode }}</td>
+    <td>{{ data.fldDescription|slice:"0:30" }}{% if data.fldDescription|length > 30 %}...{% endif %}</td>
+    <td>{{ data.fldCategoryDesc }}</td>
+    <td>{{ data.fldAmendDate }}</td>
     </tr>
        {% endfor %}
     </tbody>

@@ -19,13 +19,10 @@
         <li><a href="{% url 'pricelist' %}">View Current Pricelist</a></li>
         </ul>
         </li>
-
-
-
-
-    
     </ul>
     </li>
+
+
     <li class="submenu-open">
     <h6 class="submenu-hdr">Rate and Pricing Management</h6>
     <ul>
@@ -34,16 +31,28 @@
     </ul>
     </li>
     <li class="submenu-open">
-    <h6 class="submenu-hdr">Integration with BPO</h6>
+    <h6 class="submenu-hdr">Product Inventory Management</h6>
     <ul>
+    <li><a href="{% url 'bpoinventory' %}"><i data-feather="shopping-cart"></i><span>BPO Inventory</span></a></li>
+    <li><a href="{% url 'xpressinventory' %}"><i data-feather="shopping-cart"></i><span>Xpress Inventory</span></a></li>
+    <li><a href="{% url 'inventory' %}"><i data-feather="shopping-cart"></i><span>BPO-Exclusive</span></a></li>
+    <li><a href="{% url 'calculatecost' %}"><i data-feather="copy"></i><span>Xpress-Exclusive</span></a></li>
     <li><a href="{% url 'syncinventory' %}"><i data-feather="shopping-cart"></i><span>Sync Inventory Data</span></a></li>
-    <li><a href="{% url 'syncinventory' %}"><i data-feather="shopping-cart"></i><span>Supplier Cost Sync</span></a></li>
-    <li><a href="{% url 'inventory' %}"><i data-feather="shopping-cart"></i><span>Inventory Pricing</span></a></li>
-    <li><a href="{% url 'calculatecost' %}"><i data-feather="copy"></i><span>L/Cost Calculation</span></a></li>
-    <li><a href="{% url 'integrationsettings' %}"><i data-feather="file-text"></i><span>Integration Settings</span></a></li>
-    <li><a href="{% url 'BPOreporting' %}"><i data-feather="copy"></i><span>BPO Reports</span></a></li>
     </ul>
     </li>
+
+
+   
+        <li class="submenu-open">
+        <h6 class="submenu-hdr">Product Inventory Management</h6>
+        <ul>    
+        <li><a href="{% url 'syncinventory' %}"><i data-feather="shopping-cart"></i><span>Supplier Cost Sync</span></a></li>
+        <li><a href="{% url 'inventory' %}"><i data-feather="shopping-cart"></i><span>Inventory Pricing</span></a></li>
+        <li><a href="{% url 'calculatecost' %}"><i data-feather="copy"></i><span>L/Cost Calculation</span></a></li>
+        <li><a href="{% url 'integrationsettings' %}"><i data-feather="file-text"></i><span>Integration Settings</span></a></li>
+        <li><a href="{% url 'BPOreporting' %}"><i data-feather="copy"></i><span>BPO Reports</span></a></li>
+        </ul>
+        </li>
 
 
 

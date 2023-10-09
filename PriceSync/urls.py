@@ -20,7 +20,7 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-   #path('admin/', admin.site.urls),
+   path('admin/', admin.site.urls),
    path('', views.dashboard, name='dashboard'),
    path('login', views.login, name='login'),
    path('register', views.signup, name='register'),
@@ -49,4 +49,7 @@ urlpatterns = [
    path('system', views.systemconfigurations, name='system'),
    path('security', views.securityandpermissions, name='security'),
    path('BackupRestoreCenter', views.backupandrestore, name='HostCenter'),
+
+   path('bpoinventory', views.remoteinventoryaccess, name='bpoinventory'),
+   path('xpressinventory', views.localinventoryaccess, name='xpressinventory'),
 ]
