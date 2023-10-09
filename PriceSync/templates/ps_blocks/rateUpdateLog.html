@@ -15,8 +15,8 @@
 
 {% if form_sub_dup %}
 <div class="container">
-    <div class="notice notice-warning">
-        <strong>{{ form_sub_dup }}</strong> Sorry, the rate for this day has already been specified.
+    <div class="notice notice-danger">
+        <strong>{{ form_sub_dup }}</strong>
     </div>
 </div>
 {% endif %}
@@ -24,7 +24,7 @@
 {% if form_sub_success %}
 <div class="container">
     <div class="notice notice-success">
-        <strong>{{ form_sub_success }}</strong> Sorry, the rate for this day has already been specified.
+        <strong>{{ form_sub_success }}</strong>
     </div>
 </div>
 {% endif %}

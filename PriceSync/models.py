@@ -44,6 +44,7 @@ class MasterInventory(models.Model):
 class ProductCostMapping(models.Model):
     prodSupplierCode = models.CharField(max_length=40, primary_key=True, null=False, blank=False, verbose_name='Product Supplier Code', help_text='Enter the product supplier code.')
     prodNashuaCode = models.CharField(max_length=40, null=True, blank=True, verbose_name='Product Nashua Code', help_text='Enter the product nashua code.')
+    prodDesc = models.TextField(blank=True, null=True)
     prodCategory = models.CharField(max_length=255, verbose_name="Product Category")
     prodSupplierName = models.CharField(max_length=255, verbose_name="Supplier Name", blank=True, null=True)
     prodSupplierCurrency = models.CharField(max_length=3, blank=True, null=True)

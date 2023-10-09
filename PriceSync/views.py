@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.http import HttpResponse
 from tablib import Dataset
-from .models import PriceList, ExchangeRate
+from .models import PriceList, ExchangeRate, ProductCostMapping, MasterInventory
 from .resources import pricelistResource
 from .db_utils import get_db_connection, get_remote_db_connection
 from datetime import datetime
@@ -68,7 +68,7 @@ def rateupdate(request):
                     return render(request, 'ps_blocks/rateUpdateLog.html', {'save_err': save_err, 'form': form, 'ExchangeRate': exchange_rate_model})
             
             else:
-                form_sub_dup = "A rate with the same date and currencies already exists."
+                form_sub_dup = "The specified rate with the same date and currencies already exists."
                 return render(request, 'ps_blocks/rateUpdateLog.html', {'form_sub_dup': form_sub_dup, 'form': form, 'ExchangeRate': exchange_rate_model})
     
     else:
@@ -84,6 +84,11 @@ def costfactors(request):
 # pages to create
 def uploadplist(request):
     if request.method == 'POST':
+        # Check if the PriceList model is not empty
+        if PriceList.objects.exists():
+            error_message = "PriceList is not empty. Cannot upload a new pricelist."
+            return render(request, 'ps_blocks/uploadpricelist.html', {'error_message': error_message})
+
         if request.POST.get('supplier_name') and request.POST.get('pl_currency'):
             pricelist_resource = pricelistResource()
             dataset = Dataset()
@@ -101,6 +106,9 @@ def uploadplist(request):
                 )
                 value.save()
 
+            success_message = "Pricelist uploaded successfully."
+            return render(request, 'ps_blocks/uploadpricelist.html', {'success_message': success_message})
+
     return render(request, 'ps_blocks/uploadpricelist.html')
 
 
@@ -112,6 +120,10 @@ def viewpricelist(request):
             cursor.execute("DELETE FROM PriceSync_pricelist")
             # Commit the changes
             conn.commit()
+
+            # After successfully updating records, return a success message
+            success_message = "Price list cleared successfully."
+            return render(request, 'ps_blocks/pricelist.html', {'success_message': success_message})
 
         except DatabaseError as e:
             # Handle database-related exceptions more precisely
@@ -177,8 +189,8 @@ def remoteinventoryaccess(request):
             conn.commit()
 
             sql2 = """
-INSERT INTO PriceSync_productcostmapping (prodSupplierCode, prodNashuaCode, prodCategory, prodSupplierName, prodSupplierCurrency, prodSupplierCost, prodSupplierLandedCost_USD, prodNashuaSellingPrice_USD, prodCalculatedPriceDate)
-SELECT prodCode, '', prodCategory, '', '', '0.00', '0.00', '0.00', prodDOC
+INSERT INTO PriceSync_productcostmapping (prodSupplierCode, prodNashuaCode, prodDesc, prodCategory, prodSupplierName, prodSupplierCurrency, prodSupplierCost, prodSupplierLandedCost_USD, prodNashuaSellingPrice_USD, prodCalculatedPriceDate)
+SELECT prodCode, '', prodDesc, prodCategory, '', '', '0.00', '0.00', '0.00', prodDOC
 FROM PriceSync_masterinventory
 WHERE prodCode NOT IN (SELECT prodSupplierCode FROM PriceSync_productcostmapping);
 """
@@ -189,7 +201,13 @@ WHERE prodCode NOT IN (SELECT prodSupplierCode FROM PriceSync_productcostmapping
             cursor.close()
             conn.close()
 
-            return HttpResponse("Success: Data for " + str(r_count) + " rows has been successfully synced from BPO.")
+
+            conn = get_remote_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM [nashua-eva].BPO2_NASH_PROD.dbo.vw_INVNInventory")
+            result = cursor.fetchall()
+            success_message = "Success: Data for " + str(r_count) + " rows has been successfully synced from BPO."
+            return render(request, 'ps_blocks/remoteinventoryaccess.html', {'results': result, 'success_message': success_message})
 
 
         except Exception as e:
@@ -228,7 +246,142 @@ def updatecurrencyrates(request):
     return render(request, 'ps_blocks/under_maintenance.html')
 
 def syncinventorydata(request):
-    return render(request, 'ps_blocks/syncinventory.html')
+    if request.method == 'POST':
+        # Retrieve all rows from TableA
+        rows_from_pricelist = PriceList.objects.all()
+
+        if not rows_from_pricelist:
+            # Handle the case where PriceList is empty
+            error_message = "PriceList is empty. No records to sync."
+            return render(request, 'ps_blocks/syncinventory.html', {'error_message': error_message})
+
+        # Get the current date and time
+        current_date = datetime.now()
+
+        # Iterate through each row in TableA
+        for row_a in rows_from_pricelist:
+        # Check if field1 in TableA matches field2 in TableB
+            matching_row_in_ProductCostMapping = ProductCostMapping.objects.filter(prodSupplierCode=row_a.prodCode).first()
+
+            if matching_row_in_ProductCostMapping:
+                # Update fields in TableB based on values from TableA
+                matching_row_in_ProductCostMapping.prodSupplierName = row_a.prodSupplier  # Update field3 in TableB with field3 from TableA
+                matching_row_in_ProductCostMapping.prodSupplierCurrency = row_a.prodCurrency  # Update field4 in TableB with field4 from TableA
+                matching_row_in_ProductCostMapping.prodSupplierCost = row_a.prodPrice  # Update field4 in TableB with field4 from TableA
+                matching_row_in_ProductCostMapping.prodCalculatedPriceDate = current_date  # Update field4 in TableB with field4 from TableA
+
+                # Save the changes to TableB
+                matching_row_in_ProductCostMapping.save()
+        
+        # After successfully updating records, return a success message
+        success_message = "Records updated successfully."
+        return render(request, 'ps_blocks/syncinventory.html', {'results': result, 'success_message': success_message})
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM PriceSync_productcostmapping")
+        result = cursor.fetchall()
+    except Exception as e:
+        error_message = f"Error: {str(e)}"
+        return render(request, 'ps_blocks/syncinventory.html', {'results': result, 'error_message': error_message})
+
+    # Pass the results to the template
+    return render(request, 'ps_blocks/syncinventory.html', {'results': result})
+
+
+
+
+
+
+
+
+
+
+
+
+def bpoexclusiveaccess(request):
+    try:
+        # Execute the SELECT SQL statement
+        conn = get_remote_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT LTRIM(RTRIM(fldInventoryCode)) AS prodCode, 
+            fldDescription AS prodDesc, 
+            fldCategoryDesc AS prodCategory, 
+            fldCreateDate AS prodDOC
+            FROM [nashua-eva].BPO2_NASH_PROD.dbo.vw_INVNInventory;
+            """)
+
+        # Fetch the results
+        results = cursor.fetchall()
+
+        # Filter out records that already exist in PriceSync_masterinventory
+        existing_prodcodes = MasterInventory.objects.values_list('prodCode', flat=True)
+        filtered_results = [row for row in results if row[0] not in existing_prodcodes]
+
+        if not filtered_results:
+            return render(request, 'ps_blocks/bpoexclusive.html')
+
+        return render(request, 'ps_blocks/bpoexclusive.html', {'results': filtered_results})
+
+    except Exception as e:
+        # Handle exceptions or errors here
+        return HttpResponse(f"Error: {str(e)}")
+    
+
+
+
+
+def xpressexclusiveaccess(request):
+    try:
+        # Execute the SELECT SQL statement for PriceSync_masterinventory
+        conn = get_db_connection()  # Assuming this function returns the connection to your local database
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT prodCode, prodDesc, prodCategory, prodDOC
+            FROM PriceSync_masterinventory
+            """)
+
+        # Fetch the results for PriceSync_masterinventory
+        results_price_sync = cursor.fetchall()
+
+        # Execute the SELECT SQL statement for [nashua-eva].BPO2_NASH_PROD.dbo.vw_INVNInventory
+        conn_remote = get_remote_db_connection()  # Assuming this function returns the connection to your remote database
+        cursor_remote = conn_remote.cursor()
+        cursor_remote.execute("""
+            SELECT LTRIM(RTRIM(fldInventoryCode)) AS prodCode, 
+            fldDescription AS prodDesc, 
+            fldCategoryDesc AS prodCategory, 
+            fldCreateDate AS prodDOC
+            FROM [nashua-eva].BPO2_NASH_PROD.dbo.vw_INVNInventory
+            """)
+
+        # Fetch the results for [nashua-eva].BPO2_NASH_PROD.dbo.vw_INVNInventory
+        results_bpo = cursor_remote.fetchall()
+
+        # Get a list of prodCode values from PriceSync_masterinventory
+        existing_prodcodes = [row[0] for row in results_bpo]
+
+        # Filter out records that are in PriceSync_masterinventory
+        filtered_results = [row for row in results_price_sync if row[0] not in existing_prodcodes]
+
+        if not filtered_results:
+            return render(request, 'ps_blocks/xpressexclusive.html')
+
+        return render(request, 'ps_blocks/xpressexclusive.html', {'results': filtered_results})
+
+    except Exception as e:
+        # Handle exceptions or errors here
+        return HttpResponse(f"Error: {str(e)}")
+
+
+
+
+
+
+
+
+
 
 def inventorypricing(request):
     return render(request, 'ps_blocks/under_maintenance.html')

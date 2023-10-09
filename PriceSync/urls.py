@@ -52,4 +52,6 @@ urlpatterns = [
 
    path('bpoinventory', views.remoteinventoryaccess, name='bpoinventory'),
    path('xpressinventory', views.localinventoryaccess, name='xpressinventory'),
+   path('xpressexclusive', views.xpressexclusiveaccess, name='xpressexclusive'),
+   path('bpoexclusive', views.bpoexclusiveaccess, name='bpoexclusive'),
 ]

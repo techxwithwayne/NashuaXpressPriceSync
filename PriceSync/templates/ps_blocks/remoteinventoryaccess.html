@@ -5,7 +5,7 @@
 <div class="page-header">
     <div class="page-title">
     <h4>BPO Inventory List</h4>
-    <h6>Access and review the most up-to-date product pricing information.</h6>
+    <h6>Efficiently Track Your BPO Inventory</h6>
     </div>
     <div class="page-btn">
         <form method="POST">
@@ -14,6 +14,14 @@
     </form>
     </div>
     </div>
+
+    {% if success_message %}
+<div class="container">
+    <div class="notice notice-success">
+        <strong>{{ success_message }}</strong>
+    </div>
+</div>
+{% endif %}
 
     <div class="card">
         <div class="card-body">
