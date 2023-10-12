@@ -1,18 +1,15 @@
 from django.shortcuts import render
 from django.http import HttpResponse
 from tablib import Dataset
-from .models import PriceList, ExchangeRate, ProductCostMapping, MasterInventory
+from .models import PriceList, ExchangeRate, ProductCostMapping, MasterInventory, ProductCostingFactors
 from .resources import pricelistResource
 from .db_utils import get_db_connection, get_remote_db_connection
 from datetime import datetime
-from .forms import ExchangeRateForm
+from .forms import ExchangeRateForm, ProductCostingFactorsform
 from django.db.utils import DatabaseError
-
-
-
-
-
 from django.db import connection, transaction
+import logging
+
 
 
 
@@ -78,17 +75,97 @@ def rateupdate(request):
 
 
 
+
+
+
+
+
 def costfactors(request):
-    return render(request, 'ps_blocks/costfactorspanel.html')
+    # Configure logging
+    logging.basicConfig(filename='app.log', level=logging.ERROR)
+    categories = ProductCostMapping.objects.values_list('prodCategory', flat=True).distinct().order_by('prodCategory')
+    suppliers = ProductCostMapping.objects.values_list('prodSupplierName', flat=True).distinct().order_by('prodSupplierName')
+    cost_factors_model = ProductCostingFactors.objects.order_by('StockCategory')
+
+    if request.method == 'POST':
+        form = ProductCostingFactorsform(request.POST)  # Replace 'YourForm' with your actual form class name
+
+        #if form.is_valid():
+            #data = form.cleaned_data
+            #cf_supplier_name = data['cf_supplier_name']
+            #cf_category = data['cf_category']
+            #cf_currency = data['cf_currency']
+            #cf_exc_rate = data['ExchangeRateFactor']
+            #cf_duty = data['DutyFactor']
+            #cf_freight = data['FreightChargesFactor']
+            #cf_markup = data['MarkupFactor']
+        cf_supplier_name = request.POST.get('supplier_name')
+        cf_category = request.POST.get('category')
+        cf_currency = request.POST.get('currency')
+        cf_exc_rate = request.POST.get('exc_rate')
+        cf_duty = request.POST.get('duty')
+        cf_freight = request.POST.get('freight_charges')
+        cf_markup = request.POST.get('markup')
+        cf_UpdatedBy = "Keegan Solomon" 
+        cf_UpdatedOn = datetime.now() 
+
+        # Check if the rate already exists
+        if not ProductCostingFactors.objects.filter(
+            StockCategory=cf_category,
+            SupplierName=cf_supplier_name,
+            CurrencyCode=cf_currency
+        ).exists():
+                try:
+                    new_cost_factor = ProductCostingFactors(
+                        StockCategory=cf_category,
+                        SupplierName=cf_supplier_name,
+                        CurrencyCode=cf_currency,
+                        ExchangeRateFactor=cf_exc_rate,
+                        DutyFactor=cf_duty,
+                        FreightChargesFactor=cf_freight,
+                        MarkupFactor=cf_markup,
+                        UpdatedBy = cf_UpdatedBy,
+                        UpdatedOn = cf_UpdatedOn,
+                    )
+                    new_cost_factor.save()
+
+                    form_sub_success = "Cost Factor Added Successfully."
+                    return render(request, 'ps_blocks/costfactorspanel.html', {'results': cost_factors_model, 'form': form, 'form_sub_success': form_sub_success})
+
+                except Exception as e:
+                    save_err = "Error saving to the database"
+                    return render(request, 'ps_blocks/costfactorspanel.html', {'save_err': save_err, 'form': form, 'results': cost_factors_model})
+            
+        else:
+            form_sub_dup = "The specified cost factors already exist."
+            return render(request, 'ps_blocks/costfactorspanel.html', {'form_sub_dup': form_sub_dup, 'form': form, 'results': cost_factors_model})
+
+    else:
+        form = ProductCostingFactorsform()  # Replace 'YourForm' with your actual form class name
+
+    return render(request, 'ps_blocks/costfactorspanel.html', {'results': cost_factors_model, 'categories': categories, 'suppliers': suppliers, 'form': form})
+
+
+
+
+
+
+
+
+
+
+
+
 
 # pages to create
+from django.shortcuts import render
+from .models import PriceList
+from .resources import pricelistResource
+from tablib import Dataset
+
+
 def uploadplist(request):
     if request.method == 'POST':
-        # Check if the PriceList model is not empty
-        if PriceList.objects.exists():
-            error_message = "PriceList is not empty. Cannot upload a new pricelist."
-            return render(request, 'ps_blocks/uploadpricelist.html', {'error_message': error_message})
-
         if request.POST.get('supplier_name') and request.POST.get('pl_currency'):
             pricelist_resource = pricelistResource()
             dataset = Dataset()
@@ -96,17 +173,23 @@ def uploadplist(request):
             imported_data = dataset.load(new_pricelist.read(), format='xlsx')
             supplier_val = request.POST.get('supplier_name')
             currency_val = request.POST.get('pl_currency')
+            count_empty_row = 0
+            count_inserted_row = 0
             for data in imported_data:
-                value = PriceList(
-                    data[0],
-                    data[1],
-                    data[2],
-                    currency_val,
-                    supplier_val
-                )
-                value.save()
+                if data[0] is not None and data[1] is not None:
+                    value = PriceList(
+                        data[0],
+                        data[1],
+                        data[2],
+                        currency_val,
+                        supplier_val
+                    )
+                    value.save()
+                    count_inserted_row += 1
+                else:
+                    count_empty_row += 1
 
-            success_message = "Pricelist uploaded successfully."
+            success_message = f"{count_inserted_row} Rows inserted successfully and {count_empty_row} rows skipped."
             return render(request, 'ps_blocks/uploadpricelist.html', {'success_message': success_message})
 
     return render(request, 'ps_blocks/uploadpricelist.html')
@@ -147,7 +230,7 @@ def viewpricelist(request):
 
 
 def remoteinventoryaccess(request):
-    import logging
+    
 # Configure logging
     logging.basicConfig(filename='app.log', level=logging.ERROR)
 
@@ -189,8 +272,8 @@ def remoteinventoryaccess(request):
             conn.commit()
 
             sql2 = """
-INSERT INTO PriceSync_productcostmapping (prodSupplierCode, prodNashuaCode, prodDesc, prodCategory, prodSupplierName, prodSupplierCurrency, prodSupplierCost, prodSupplierLandedCost_USD, prodNashuaSellingPrice_USD, prodCalculatedPriceDate)
-SELECT prodCode, '', prodDesc, prodCategory, '', '', '0.00', '0.00', '0.00', prodDOC
+INSERT INTO PriceSync_productcostmapping (prodSupplierCode, prodNashuaCode, prodDesc, prodCategory, prodSupplierName, prodSupplierCurrency, prodCalculationModifier, prodSupplierCost, prodSupplierLandedCost_USD, prodNashuaSellingPrice_USD, prodCalculatedPriceDate)
+SELECT prodCode, '', prodDesc, prodCategory, '', '', 'Null', '0.00', '0.00', '0.00', prodDOC
 FROM PriceSync_masterinventory
 WHERE prodCode NOT IN (SELECT prodSupplierCode FROM PriceSync_productcostmapping);
 """
@@ -275,6 +358,10 @@ def syncinventorydata(request):
         
         # After successfully updating records, return a success message
         success_message = "Records updated successfully."
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM PriceSync_productcostmapping")
+        result = cursor.fetchall()
         return render(request, 'ps_blocks/syncinventory.html', {'results': result, 'success_message': success_message})
     try:
         conn = get_db_connection()
@@ -387,7 +474,22 @@ def inventorypricing(request):
     return render(request, 'ps_blocks/under_maintenance.html')
 
 def lcostcalculations(request):
-    return render(request, 'ps_blocks/under_maintenance.html')
+    rows_from_procostmapping = ProductCostMapping.objects.all()
+    if request.method == 'POST':
+        namex = 1
+    return render(request, 'ps_blocks/lcostcalculation.html', {'results': rows_from_procostmapping})
+
+
+
+
+
+
+
+
+
+
+
+
 
 def integrationsetting(request):
     return render(request, 'ps_blocks/under_maintenance.html')

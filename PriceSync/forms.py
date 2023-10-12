@@ -1,9 +1,9 @@
 from django import forms
 from django.forms import ModelForm
-from .models import PriceList, ExchangeRate
+from .models import PriceList, ExchangeRate, ProductCostingFactors
 
 #create forms below
-class pricelistform(forms.Form):
+class pricelistform(ModelForm):
     class meta:
         model = PriceList
         fields = '__all__'
@@ -34,5 +34,47 @@ class ExchangeRateForm(ModelForm):
             'rateValue': forms.TextInput(attrs={'class':'form-control', 'id':'decimalInput', 'oninput':"validateDecimal(this)", 'required':'required'})
         }
 
+
+
+# spot the difference between ModelForm and forms.Form
+class ProductCostingFactorsform(forms.Form):
+    class meta:
+        model = ProductCostingFactors
+        fields = '__all__'
+    '''
+    currency_choices = [('ZAR', 'ZAR'), ('ZWL', 'ZWL'),('USD', 'USD')]
+    cf_currency = forms.ChoiceField(
+        choices=currency_choices,
+        widget=forms.Select(attrs={'class': 'form-control col-lg-6 col-sm-12 col-12'}),label='Currency')
+    
+    customer_name_choices = [('TAROPA', 'TAROPA'), ('ZEPO', 'ZEPO')]
+    cf_supplier_name = forms.ChoiceField(
+        choices=customer_name_choices,
+        widget=forms.Select(attrs={'class': 'form-control col-lg-12 col-sm-12 col-12'}),label='Customer Name')
+    
+    category_choices = [('MAIZE', 'MAIZE')]
+    cf_category = forms.ChoiceField(
+        choices=category_choices,
+        widget=forms.Select(attrs={'class': 'form-control col-lg-6 col-sm-12 col-12'}),label='Category')
+    
+    class Meta:
+        model = ProductCostingFactors
+        fields = ['ExchangeRateFactor', 'DutyFactor', 'FreightChargesFactor', 'MarkupFactor']
+        # create labels, widgets dictionary
+        labels = {
+            'ExchangeRateFactor': 'Exchange Rate',
+            'DutyFactor': 'Duty Factor',
+            'FreightChargesFactor': 'Freight Charges',
+            'MarkupFactor': 'Markup Factor'
+        }
+       
+        widgets = {
+            'ExchangeRateFactor': forms.TextInput(attrs={'class':'form-control', 'id':'decimalInput', 'oninput':"validateDecimal(this)", 'required':'required'}),
+            'DutyFactor': forms.TextInput(attrs={'class':'form-control', 'id':'decimalInput', 'oninput':"validateDecimal(this)", 'required':'required'}),
+            'FreightChargesFactor': forms.TextInput(attrs={'class':'form-control', 'id':'decimalInput', 'oninput':"validateDecimal(this)", 'required':'required'}),
+            'MarkupFactor': forms.TextInput(attrs={'class':'form-control', 'id':'decimalInput', 'oninput':"validateDecimal(this)", 'required':'required'})
+        }
+
+        '''
         
 

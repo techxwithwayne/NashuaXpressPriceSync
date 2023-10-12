@@ -48,11 +48,25 @@ class ProductCostMapping(models.Model):
     prodCategory = models.CharField(max_length=255, verbose_name="Product Category")
     prodSupplierName = models.CharField(max_length=255, verbose_name="Supplier Name", blank=True, null=True)
     prodSupplierCurrency = models.CharField(max_length=3, blank=True, null=True)
+    prodCalculationModifier = models.CharField(max_length=50, default="Null", verbose_name="Modify Method on Calculation") 
     prodSupplierCost = models.DecimalField(max_digits=18, decimal_places=2, default=0.00)
     prodSupplierLandedCost_USD = models.DecimalField(max_digits=18, decimal_places=2, default=0.00)
     prodNashuaSellingPrice_USD = models.DecimalField(max_digits=18, decimal_places=2, default=0.00)
     prodCalculatedPriceDate = models.DateField(verbose_name="Calculated On", default=date.today)
 
+
+
+
+class ProductCostingFactors(models.Model):
+    StockCategory = models.CharField(max_length=255, verbose_name="Product Category")
+    SupplierName = models.CharField(max_length=255, verbose_name="Supplier Name", blank=True, null=True)
+    CurrencyCode = models.CharField(max_length=3)
+    ExchangeRateFactor = models.DecimalField(max_digits=18, decimal_places=2, default=0.00)
+    DutyFactor = models.DecimalField(max_digits=18, decimal_places=2, default=0.00)
+    FreightChargesFactor = models.DecimalField(max_digits=18, decimal_places=2, default=0.00)
+    MarkupFactor = models.DecimalField(max_digits=18, decimal_places=2, default=0.00)
+    UpdatedBy = models.CharField(max_length=100)
+    UpdatedOn = models.DateField()
 
 
 

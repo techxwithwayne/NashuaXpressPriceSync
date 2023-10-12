@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+{% block content %}
+{% load static %}
+<div class="page-header">
+    <div class="page-title">
+    <h4>Landed Cost Calculation</h4>
+    <h6>Manage your sales</h6>
+    </div>
+    <div class="page-btn">
+        <form method="POST">
+            {% csrf_token %}
+        <button type="submit" class="btn btn-added"><img src="{% static 'assets/img/icons/download.svg' %}" alt="img" class="me-1">Update Supplier Price</button>
+    </form>
+    </div>
+    </div>
+
+
+
+
+
+    {% if success_message %}
+    <div class="container">
+        <div class="notice notice-success">
+            <strong>{{ success_message }}</strong>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if error_message %}
+    <div class="container">
+        <div class="notice notice-danger">
+            <strong>{{ error_message }}</strong>
+        </div>
+    </div>
+    {% endif %}
+
+
+
+    <div class="card">
+        <div class="card-body">
+
+            <div class="table-top">
+                <div class="search-set">
+                <div class="search-path">
+                <a class="btn btn-filter" id="filter_search">
+                <img src="{% static 'assets/img/icons/filter.svg' %}" alt="img">
+                <span><img src="{% static 'assets/img/icons/closes.svg' %}" alt="img"></span>
+                </a>
+                </div>
+                <div class="search-input">
+                <a class="btn btn-searchset"><img src="{% static 'assets/img/icons/search-white.svg' %}" alt="img"></a>
+                </div>
+                </div>
+                <div class="wordset">
+                <ul>
+                <li>
+                <a data-bs-toggle="tooltip" data-bs-placement="top" title="pdf"><img src="{% static 'assets/img/icons/pdf.svg' %}" alt="img"></a>
+                </li>
+                <li>
+                <a data-bs-toggle="tooltip" data-bs-placement="top" title="excel"><img src="{% static 'assets/img/icons/excel.svg' %}" alt="img"></a>
+                </li>
+                <li>
+                <a data-bs-toggle="tooltip" data-bs-placement="top" title="print"><img src="{% static 'assets/img/icons/printer.svg' %}" alt="img"></a>
+                </li>
+                </ul>
+                </div>
+                </div>
+
+
+                <div class="card" id="filter_inputs">
+                    <div class="card-body pb-0">
+                    <div class="row">
+                    <div class="col-lg-3 col-sm-6 col-12">
+                    <div class="form-group">
+                    <input type="text" placeholder="Enter Name">
+                    </div>
+                    </div>
+                    <div class="col-lg-3 col-sm-6 col-12">
+                    <div class="form-group">
+                    <input type="text" placeholder="Enter Reference No">
+                    </div>
+                    </div>
+                    <div class="col-lg-3 col-sm-6 col-12">
+                    <div class="form-group">
+                    <select>
+                    <option>Completed</option>
+                    <option>Paid</option>
+                    </select>
+                    </div>
+                    </div>
+                    <div class="col-lg-3 col-sm-6 col-12">
+                    <div class="form-group">
+                    <a class="btn btn-filters ms-auto"><img src="assets/img/icons/search-whites.svg" alt="img"></a>
+                    </div>
+                    </div>
+                    </div>
+                    </div>
+                    </div>
+
+
+
+
+                    <div class="table-responsive">
+                        <table class="table  datanew">
+                        <thead>
+                        <tr>
+                        <th></th>
+                        <th>
+                        <label class="checkboxs">
+                        <input type="checkbox" id="select-all">
+                        <span class="checkmarks"></span>
+                        </label>
+                        </th>
+                        <th>Supplier P.Code</th>
+                        <th>Nashua P.Code</th>
+                        <th>Description</th>
+                        <th>Category</th>
+                        <th>Supplier</th>
+                        <th>Calculation Modifier</th>
+                        <th>Currency</th>
+                        <th>Supplier Cost</th>
+                        <th>Landed Cost</th>
+                        <th>Selling Price</th>
+                        <th class="text-center">Action</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                            {% for data in results %}
+                        <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>
+                        <label class="checkboxs">
+                        <input type="checkbox">
+                        <span class="checkmarks"></span>
+                        </label>
+                        </td>
+                        <td>{{ data.prodSupplierCode }}</td>
+                        <td>{{ data.prodNashuaCode }}</td>
+                        <td>{{ data.prodDesc }}</td>
+                        <td>{{ data.prodCategory }}</td>
+                        <td>{{ data.prodSupplierName }}</td>
+                        <td class="text-green">{{ data.prodCalculationModifier }}</td>
+                        <td>{{ data.prodSupplierCurrency }}</td>
+                        <td class="text-red">{{ data.prodSupplierCost }}</td>
+                        <td>{{ data.prodSupplierLandedCost_USD }}</td>
+                        <td>{{ data.prodNashuaSellingPrice_USD }}</td>
+                        <td class="text-center">
+                        <a class="action-set" href="javascript:void(0);" data-bs-toggle="dropdown" aria-expanded="true">
+                        <i class="fa fa-ellipsis-v" aria-hidden="true"></i>
+                        </a>
+                        <ul class="dropdown-menu">
+                        <li>
+                        <a href="sales-details.html" class="dropdown-item"><img src="assets/img/icons/eye1.svg" class="me-2" alt="img">Sale Detail</a>
+                        </li>
+                        <li>
+                        <a href="edit-sales.html" class="dropdown-item"><img src="assets/img/icons/edit.svg" class="me-2" alt="img">Edit Sale</a>
+                        </li>
+                        <li>
+                        <a href="javascript:void(0);" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#showpayment"><img src="assets/img/icons/dollar-square.svg" class="me-2" alt="img">Show Payments</a>
+                        </li>
+                        <li>
+                        <a href="javascript:void(0);" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#createpayment"><img src="assets/img/icons/plus-circle.svg" class="me-2" alt="img">Create Payment</a>
+                        </li>
+                        <li>
+                        <a href="javascript:void(0);" class="dropdown-item"><img src="assets/img/icons/download.svg" class="me-2" alt="img">Download pdf</a>
+                        </li>
+                        <li>
+                        <a href="javascript:void(0);" class="dropdown-item confirm-text"><img src="assets/img/icons/delete1.svg" class="me-2" alt="img">Delete Sale</a>
+                        </li>
+                        </ul>
+                        </td>
+                        </tr>
+                        {% endfor %}
+                
+                
+                
+                
+                
+                        
+                        </tbody>
+                        </table>
+                        </div>
+
+
+
+
+
+
+
+    
+
+</div>
+</div>
+{% endblock %}
