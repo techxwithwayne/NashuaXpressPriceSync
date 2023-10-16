@@ -9,6 +9,7 @@ from .forms import ExchangeRateForm, ProductCostingFactorsform
 from django.db.utils import DatabaseError
 from django.db import connection, transaction
 import logging
+from django.db.models import Max
 
 
 
@@ -272,8 +273,8 @@ def remoteinventoryaccess(request):
             conn.commit()
 
             sql2 = """
-INSERT INTO PriceSync_productcostmapping (prodSupplierCode, prodNashuaCode, prodDesc, prodCategory, prodSupplierName, prodSupplierCurrency, prodCalculationModifier, prodSupplierCost, prodSupplierLandedCost_USD, prodNashuaSellingPrice_USD, prodCalculatedPriceDate)
-SELECT prodCode, '', prodDesc, prodCategory, '', '', 'Null', '0.00', '0.00', '0.00', prodDOC
+INSERT INTO PriceSync_productcostmapping (prodSupplierCode, prodNashuaCode, prodDesc, prodCategory, prodSupplierName, prodSupplierCurrency, prodCalculationModifier, prodSupplierCost, prodSupplierCostUSD, prodSupplierLandedCost_USD, prodNashuaSellingPrice_USD, prodCalculatedPriceDate)
+SELECT prodCode, '', prodDesc, prodCategory, '', '', 'Null', '0.00', '0.00', '0.00', '0.00', prodDOC
 FROM PriceSync_masterinventory
 WHERE prodCode NOT IN (SELECT prodSupplierCode FROM PriceSync_productcostmapping);
 """
@@ -473,11 +474,77 @@ def xpressexclusiveaccess(request):
 def inventorypricing(request):
     return render(request, 'ps_blocks/under_maintenance.html')
 
+
+
+
+
+
+
 def lcostcalculations(request):
+    # Configure logging
+    logging.basicConfig(filename='app.log', level=logging.ERROR)
+
+    suppliers = ProductCostMapping.objects.values_list('prodSupplierName', flat=True).distinct().order_by('prodSupplierName')
     rows_from_procostmapping = ProductCostMapping.objects.all()
+
     if request.method == 'POST':
-        namex = 1
-    return render(request, 'ps_blocks/lcostcalculation.html', {'results': rows_from_procostmapping})
+        supplier_name = request.POST.get('supplier_name')
+        lc_currency = request.POST.get('lc_currency')
+
+        if not supplier_name or not lc_currency:
+            required_fields_msg = "Supplier Name or Currency fields are empty"
+            return render(request, 'ps_blocks/lcostcalculation.html', {'results': rows_from_procostmapping, 'suppliers': suppliers, 'missing_fields': required_fields_msg})
+
+        selected_products_dataset = ProductCostMapping.objects.filter(prodSupplierName=supplier_name, prodSupplierCurrency=lc_currency)
+
+        if not selected_products_dataset.exists():
+            empty_list_msg = "There are no products ready for calculation"
+            return render(request, 'ps_blocks/lcostcalculation.html', {'results': rows_from_procostmapping, 'empty_list': empty_list_msg})
+
+        get_USD_Supplier_Cost_Exrate = ExchangeRate.objects.filter(rateBaseCurrency=lc_currency, rateTargetCurrency="USD")
+
+        # Assuming that `ExchangeRate` has a `date` field to represent the date of the rate.
+        most_recent_rate = get_USD_Supplier_Cost_Exrate.aggregate(max_date=Max('rateUpdatedOn'))
+        most_recent_rate_record = get_USD_Supplier_Cost_Exrate.filter(rateUpdatedOn=most_recent_rate['max_date']).first()
+
+        if most_recent_rate_record:
+            conversion_rate = most_recent_rate_record.rateValue
+        else:
+            # Handle the case where no records were found
+            rate_not_found_msg = "The Conversion Rate is not found"
+            return render(request, 'ps_blocks/lcostcalculation.html', {'results': rows_from_procostmapping, 'rate_not_found': rate_not_found_msg})
+
+        matching_row_in_costfactors = ProductCostingFactors.objects.filter(SupplierName=supplier_name, CurrencyCode=lc_currency)
+
+        if matching_row_in_costfactors.count() != 1:
+            count_error_msg = "Factor row not found or too many records found! Update in Cost Factor Panel"
+            return render(request, 'ps_blocks/lcostcalculation.html', {'results': rows_from_procostmapping, 'count_error': count_error_msg})
+
+       # ex_rate = matching_row_in_costfactors.first().ExchangeRateFactor
+        duty = matching_row_in_costfactors.first().DutyFactor
+        freight = matching_row_in_costfactors.first().FreightChargesFactor
+        markup = matching_row_in_costfactors.first().MarkupFactor
+
+        for prodRow in selected_products_dataset:
+            if prodRow.prodSupplierCurrency != "USD":
+                USD_SupplierCost = prodRow.prodSupplierCost / conversion_rate
+
+                if prodRow.prodCalculationModifier == "Null":
+                    #LandingCost_USD = USD_SupplierCost * ex_rate * duty * freight
+                    LandingCost_USD = USD_SupplierCost * duty * freight
+                    NashuaSellingPrice_USD = markup * LandingCost_USD
+                    #prodRow.prodSupplierCurrency = "USD"
+                    prodRow.prodSupplierCostUSD = USD_SupplierCost
+                    prodRow.prodSupplierLandedCost_USD = LandingCost_USD
+                    prodRow.prodNashuaSellingPrice_USD = NashuaSellingPrice_USD
+                    prodRow.prodCalculatedPriceDate = datetime.now()
+                    prodRow.save()
+
+        success_calculation = "Landed Cost Calculated Successfully!"
+        return render(request, 'ps_blocks/lcostcalculation.html', {'results': rows_from_procostmapping, 'count_error': success_calculation})
+
+    return render(request, 'ps_blocks/lcostcalculation.html', {'results': rows_from_procostmapping, 'suppliers': suppliers})
+
 
 
 

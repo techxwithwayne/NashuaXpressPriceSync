@@ -50,6 +50,7 @@ class ProductCostMapping(models.Model):
     prodSupplierCurrency = models.CharField(max_length=3, blank=True, null=True)
     prodCalculationModifier = models.CharField(max_length=50, default="Null", verbose_name="Modify Method on Calculation") 
     prodSupplierCost = models.DecimalField(max_digits=18, decimal_places=2, default=0.00)
+    prodSupplierCostUSD = models.DecimalField(max_digits=18, decimal_places=2, default=0.00)
     prodSupplierLandedCost_USD = models.DecimalField(max_digits=18, decimal_places=2, default=0.00)
     prodNashuaSellingPrice_USD = models.DecimalField(max_digits=18, decimal_places=2, default=0.00)
     prodCalculatedPriceDate = models.DateField(verbose_name="Calculated On", default=date.today)
