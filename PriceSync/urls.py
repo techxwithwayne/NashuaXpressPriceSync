@@ -19,10 +19,14 @@ from django.urls import path
 
 from . import views
 
+from .views import CustomLoginView
+from django.contrib.auth.views import LogoutView
+
 urlpatterns = [
    path('admin/', admin.site.urls),
    path('', views.dashboard, name='dashboard'),
-   path('login', views.login, name='login'),
+   path('login', CustomLoginView.as_view(), name='login'),
+   path('logout', LogoutView.as_view(next_page = 'login'), name='logout'),
    path('register', views.signup, name='register'),
    path('rateupdatelog', views.rateupdate, name='rateupdatelog'),
    path('costfactorspanel', views.costfactors, name='costfactorspanel'),

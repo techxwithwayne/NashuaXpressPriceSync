@@ -29,6 +29,10 @@
 <div class="login-logo logo-normal">
 <img src="{% static 'assets/img/nashua-logo.webp' %}" alt="img">
 </div>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <!--
 <div class="login-userheading">
 <h3>Account Login</h3>
 <h4>Please enter your login information to proceed.</h4>
@@ -52,9 +56,11 @@
 <h4><a href="forgetpassword.html" class="hover-a">Forgot Password?</a></h4>
 </div>
 </div>
+-->
 <div class="form-login">
-<a class="btn btn-login" href="{% url 'dashboard' %}">Sign In</a>
+<button type="submit" class="btn btn-login">Sign in</button>
 </div>
+</form>
 <div class="signinform text-center">
 <h4>Don’t have an account? <a href="{% url 'register' %}" class="hover-a">Sign Up</a></h4>
 </div>
@@ -66,9 +72,6 @@
 </div>
 </div>
 </div>
-
-
-<button class="btn btn-primary">Hey</button>
 
 <script src="{% static 'assets/js/jquery-3.6.0.min.js' %}"></script>
 <script src="{% static 'assets/js/feather.min.js' %}"></script>

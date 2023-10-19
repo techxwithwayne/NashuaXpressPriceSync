@@ -1,6 +1,6 @@
 from django import forms
 from django.forms import ModelForm
-from .models import PriceList, ExchangeRate, ProductCostingFactors
+from .models import PriceList, ExchangeRate, ProductCostingFactors, User
 
 #create forms below
 class pricelistform(ModelForm):
@@ -35,6 +35,11 @@ class ExchangeRateForm(ModelForm):
         }
 
 
+
+class Userform(forms.Form):
+    class meta:
+        model = User
+        fields = '__all__'
 
 # spot the difference between ModelForm and forms.Form
 class ProductCostingFactorsform(forms.Form):
@@ -76,5 +81,4 @@ class ProductCostingFactorsform(forms.Form):
         }
 
         '''
-        
 

@@ -1,38 +1,69 @@
 from django.shortcuts import render
 from django.http import HttpResponse
+from django.urls import reverse_lazy
 from tablib import Dataset
-from .models import PriceList, ExchangeRate, ProductCostMapping, MasterInventory, ProductCostingFactors
+from .models import PriceList, ExchangeRate, ProductCostMapping, MasterInventory, ProductCostingFactors, Suppliers, User
 from .resources import pricelistResource
 from .db_utils import get_db_connection, get_remote_db_connection
 from datetime import datetime
-from .forms import ExchangeRateForm, ProductCostingFactorsform
+from .forms import ExchangeRateForm, ProductCostingFactorsform, Userform
 from django.db.utils import DatabaseError
 from django.db import connection, transaction
 import logging
 from django.db.models import Max
-
-
-
-
+from django.db.models import Q
+from django.contrib.auth.hashers import make_password
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.views import LoginView
 
 
 
 # create your views here
+
+
+# class-based view (CBV)
+# LoginRequiredMixin and login_required serve a similar purpose in Django
+#from django.contrib.auth.mixins import LoginRequiredMixin
+#from django.views.generic import View
+class CustomLoginView(LoginView):
+    template_name = "ps_blocks/login.html"
+    fields = '__all__'
+    redirect_authenticated_user = True
+    def get_success_url(self):
+        return reverse_lazy('dashboard')
+
+
+# function-based views (FBVs)
+#from django.contrib.auth.views import LoginView
+#from django.urls import reverse_lazy
+#from django.shortcuts import render, redirect
+
+#def custom_login_view(request):
+#    if request.user.is_authenticated:
+#        return redirect('dashboard')
+#
+#    if request.method == 'POST':
+#    return render(request, 'ps_blocks/login.html')
+
+
+@login_required
 def dashboard(request):
     return render(request, 'ps_blocks/dashboard.html')
     #return HttpResponse("Hello World")
 
-def login(request):
-    return render(request, 'ps_blocks/login.html')
 
+
+@login_required
 def forgotpassword(request):
     return render(request, 'forgot-password.html')
+
 
 def signup(request):
     return render(request, 'ps_blocks/signup.html')
 
 from datetime import datetime  # Import the datetime module
 
+@login_required
 def rateupdate(request):
     exchange_rate_model = ExchangeRate.objects.order_by('-rateDate')
     
@@ -80,12 +111,12 @@ def rateupdate(request):
 
 
 
-
+@login_required
 def costfactors(request):
     # Configure logging
     logging.basicConfig(filename='app.log', level=logging.ERROR)
     categories = ProductCostMapping.objects.values_list('prodCategory', flat=True).distinct().order_by('prodCategory')
-    suppliers = ProductCostMapping.objects.values_list('prodSupplierName', flat=True).distinct().order_by('prodSupplierName')
+    suppliers = Suppliers.objects.values_list('SupplierName', flat=True).distinct().order_by('SupplierName')
     cost_factors_model = ProductCostingFactors.objects.order_by('StockCategory')
 
     if request.method == 'POST':
@@ -165,7 +196,9 @@ from .resources import pricelistResource
 from tablib import Dataset
 
 
+@login_required
 def uploadplist(request):
+    suppliers = Suppliers.objects.values_list('SupplierName', flat=True).distinct().order_by('SupplierName')
     if request.method == 'POST':
         if request.POST.get('supplier_name') and request.POST.get('pl_currency'):
             pricelist_resource = pricelistResource()
@@ -193,9 +226,10 @@ def uploadplist(request):
             success_message = f"{count_inserted_row} Rows inserted successfully and {count_empty_row} rows skipped."
             return render(request, 'ps_blocks/uploadpricelist.html', {'success_message': success_message})
 
-    return render(request, 'ps_blocks/uploadpricelist.html')
+    return render(request, 'ps_blocks/uploadpricelist.html', {'suppliers':suppliers})
 
 
+@login_required
 def viewpricelist(request):
     if request.method == 'POST':
         try:
@@ -230,6 +264,7 @@ def viewpricelist(request):
     return render(request, 'ps_blocks/pricelist.html', {'PriceList':result})
 
 
+@login_required
 def remoteinventoryaccess(request):
     
 # Configure logging
@@ -311,6 +346,7 @@ WHERE prodCode NOT IN (SELECT prodSupplierCode FROM PriceSync_productcostmapping
     return render(request, 'ps_blocks/remoteinventoryaccess.html', {'results': result})
 
 
+@login_required
 def localinventoryaccess(request):
     try:
         conn = get_db_connection()
@@ -326,9 +362,12 @@ def localinventoryaccess(request):
 
 
 
+@login_required
 def updatecurrencyrates(request):
     return render(request, 'ps_blocks/under_maintenance.html')
 
+
+@login_required
 def syncinventorydata(request):
     if request.method == 'POST':
         # Retrieve all rows from TableA
@@ -386,7 +425,7 @@ def syncinventorydata(request):
 
 
 
-
+@login_required
 def bpoexclusiveaccess(request):
     try:
         # Execute the SELECT SQL statement
@@ -419,7 +458,7 @@ def bpoexclusiveaccess(request):
 
 
 
-
+@login_required
 def xpressexclusiveaccess(request):
     try:
         # Execute the SELECT SQL statement for PriceSync_masterinventory
@@ -470,7 +509,7 @@ def xpressexclusiveaccess(request):
 
 
 
-
+@login_required
 def inventorypricing(request):
     return render(request, 'ps_blocks/under_maintenance.html')
 
@@ -479,12 +518,12 @@ def inventorypricing(request):
 
 
 
-
+@login_required
 def lcostcalculations(request):
     # Configure logging
     logging.basicConfig(filename='app.log', level=logging.ERROR)
 
-    suppliers = ProductCostMapping.objects.values_list('prodSupplierName', flat=True).distinct().order_by('prodSupplierName')
+    suppliers = Suppliers.objects.values_list('SupplierName', flat=True).distinct().order_by('SupplierName')
     rows_from_procostmapping = ProductCostMapping.objects.all()
 
     if request.method == 'POST':
@@ -528,6 +567,15 @@ def lcostcalculations(request):
         for prodRow in selected_products_dataset:
             if prodRow.prodSupplierCurrency != "USD":
                 USD_SupplierCost = prodRow.prodSupplierCost / conversion_rate
+                """
+                if prodRow.prodSupplierCode like "%(L)":
+                    NashuaSellingPrice_USD = markup * USD_SupplierCost
+                    prodRow.prodSupplierCostUSD = USD_SupplierCost
+                    prodRow.prodSupplierLandedCost_USD = USD_SupplierCost
+                    prodRow.prodNashuaSellingPrice_USD = NashuaSellingPrice_USD
+                    prodRow.prodCalculatedPriceDate = datetime.now()
+                    prodRow.save()
+                    """                 
 
                 if prodRow.prodCalculationModifier == "Null":
                     #LandingCost_USD = USD_SupplierCost * ex_rate * duty * freight
@@ -557,52 +605,161 @@ def lcostcalculations(request):
 
 
 
-
+@login_required
 def integrationsetting(request):
     return render(request, 'ps_blocks/under_maintenance.html')
 
+@login_required
 def BPOreports(request):
     return render(request, 'ps_blocks/under_maintenance.html')
 
+@login_required
 def createaccount(request):
-    return render(request, 'ps_blocks/under_maintenance.html')
+    # Configure logging
+    logging.basicConfig(filename='app.log', level=logging.ERROR)
+    if request.method == 'POST':
+        ca_firstname = request.POST.get('firstname')
+        ca_lastname = request.POST.get('lastname')
+        ca_username = request.POST.get('username')
+        ca_email = request.POST.get('email')
+        ca_mobile = request.POST.get('mobile')
+        ca_jobtitle = request.POST.get('jobtitle')
+        ca_emp_status = request.POST.get('emp_status')
+        ca_doh = request.POST.get('doh')
+        ca_department = request.POST.get('department')
+        ca_manager = request.POST.get('manager')
+        ca_emp_role = request.POST.get('emp_role')
+        ca_emp_id = request.POST.get('emp_id')
+        ca_pwd = request.POST.get('pwd')
+        hashed_password = make_password(ca_pwd)
+        ca_profile_img = request.POST.get('profile_img')
+        ca_UpdatedBy = "Keegan Solomon" 
+        ca_UpdatedOn = datetime.now() 
+        # Format the datetime as a string
+        formatted_ca_UpdatedOn = ca_UpdatedOn.strftime('%Y-%m-%d %H:%M:%S.%f %z')
 
+
+
+
+        from django.db.models import Q
+        # Check if the user already exists
+        if not User.objects.filter(
+            Q(username=ca_username) | Q(email=ca_email) | Q(employee_id=ca_emp_id) | Q(contact_number=ca_mobile)
+        ).exists():
+                try:
+                    conn = get_db_connection()
+                    cursor = conn.cursor()
+                    sql = """
+                    INSERT INTO PriceSync_user (username, password, first_name, last_name, email, employee_id, contact_number, job_title, employee_status, date_of_hire, account_creation_date, profile_picture_url, department_id, manager_id, role_id, updatedBy, updatedOn)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """
+                    values = (ca_username, hashed_password, ca_firstname, ca_lastname, ca_email, ca_emp_id, ca_mobile, ca_jobtitle, ca_emp_status, ca_doh, formatted_ca_UpdatedOn, ca_profile_img, ca_department, ca_manager, ca_emp_role, ca_UpdatedBy, ca_UpdatedOn)
+                    cursor.execute(sql, values)
+
+                    conn.commit()
+
+                    # Close the cursor and the database connection
+                    cursor.close()
+                    conn.close()
+                    
+
+
+                    form_sub_success = "New user account created Successfully."
+                    return render(request, 'ps_blocks/createuser.html', {'form_sub_success': form_sub_success})
+
+                except Exception as e:
+                    save_err = "Error saving to the database"
+                    return render(request, 'ps_blocks/createuser.html', {'save_err': save_err})
+            
+        else:
+            # Create a dictionary to map field names to their values
+            field_values = {
+                "username": ca_username,
+                "email": ca_email,
+                "employee_id": ca_emp_id,
+                "contact_number": ca_mobile,
+            }
+
+            # Initialize a list to store the names of fields that are already in use
+            fields_in_use = []
+
+            # Check if any of the fields already exist in the User model
+            for field_name, field_value in field_values.items():
+                if User.objects.filter(Q(**{field_name: field_value})).exists():
+                    fields_in_use.append(field_name)
+            # Print the fields that are already in use
+            if fields_in_use:
+                user_exist_err = f"The following fields are already in use: {', '.join(fields_in_use)}"
+                return render(request, 'ps_blocks/createuser.html', {'user_exist': user_exist_err})
+
+    else:
+        form = Userform()  # Replace 'YourForm' with your actual form class name
+
+    return render(request, 'ps_blocks/createuser.html')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@login_required
 def usermgt(request):
     return render(request, 'ps_blocks/under_maintenance.html')
 
+@login_required
 def resetpwd(request):
     return render(request, 'ps_blocks/under_maintenance.html')
 
+@login_required
 def errorpage(request):
     return render(request, 'ps_blocks/under_maintenance.html')
 
+@login_required
 def systemaccesslog(request):
     return render(request, 'ps_blocks/under_maintenance.html')
 
+@login_required
 def viewactivitylog(request):
     return render(request, 'ps_blocks/under_maintenance.html')
 
+@login_required
 def audittrailconfigs(request):
     return render(request, 'ps_blocks/under_maintenance.html')
 
+@login_required
 def documentationpanel(request):
     return render(request, 'ps_blocks/under_maintenance.html')
 
+@login_required
 def faqspanel(request):
     return render(request, 'ps_blocks/under_maintenance.html')
 
+@login_required
 def contactsupport(request):
     return render(request, 'ps_blocks/under_maintenance.html')
 
+@login_required
 def releasenotes(request):
     return render(request, 'ps_blocks/under_maintenance.html')
 
+@login_required
 def systemconfigurations(request):
     return render(request, 'ps_blocks/under_maintenance.html')
 
+@login_required
 def securityandpermissions(request):
     return render(request, 'ps_blocks/under_maintenance.html')
 
+@login_required
 def backupandrestore(request):
     return render(request, 'ps_blocks/under_maintenance.html')
 

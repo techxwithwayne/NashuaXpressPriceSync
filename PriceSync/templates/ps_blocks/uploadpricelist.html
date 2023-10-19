@@ -40,13 +40,9 @@
         <div class="mb-3">
         <select class="form-select" name="supplier_name" required aria-label="select example">
         <option value="">Select supplier below </option>
-        <option value="ASTRA CHEMICALS">ASTRA CHEMICALS</option>
-        <option value="BAMM STATIONERS">BAMM STATIONERS</option>
-        <option value="Buy Back Supplier">Buy Back Supplier</option>
-        <option value="COPIER PARTS COMPANY (Pvt) Ltd">COPIER PARTS COMPANY (Pvt) Ltd</option>
-        <option value="CORPORATE COPIERS">CORPORATE COPIERS</option>
-        <option value="DELACE SOUTH AFRICA">DELACE SOUTH AFRICA</option>
-        <option value="DRIVE CONTROL CORPORATION">DRIVE CONTROL CORPORATION</option>
+        {% for supplier in suppliers %}
+        <option value="{{ supplier }}">{{ supplier|upper }}</option>
+        {% endfor %}
         </select>
         <div class="invalid-feedback">Please select the supplier's name.</div>
         </div>

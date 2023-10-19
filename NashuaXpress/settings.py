@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'import_export',
 ]
 
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -52,6 +53,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
 
 ROOT_URLCONF = 'NashuaXpress.urls'
 
@@ -82,7 +84,7 @@ DATABASES = {
             'ENGINE': 'mssql',
             'NAME': 'NashuaXpressDB',
             'USER': 'wayne',
-            'PASSWORD': 'P@ssw0rd123',
+            'PASSWORD': 'P@ssw0rd1234',
             'HOST': 'NASHUA-WAYNE',
             'PORT': '',
 
@@ -145,6 +147,8 @@ USE_I18N = True
 
 USE_TZ = True
 
+
+LOGIN_URL = "login"
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/

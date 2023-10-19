@@ -71,4 +71,67 @@ class ProductCostingFactors(models.Model):
 
 
 
+class Suppliers(models.Model):
+    SupplierName = models.CharField(max_length=100)
+    Contact_person = models.CharField(max_length=100, blank=True, null=True)
+    Email = models.EmailField(blank=True, null=True)
+    Phone_number = models.CharField(max_length=20, blank=True, null=True)
+    Address = models.TextField(blank=True, null=True)
+    City = models.CharField(max_length=50, blank=True, null=True)
+    State = models.CharField(max_length=50, blank=True, null=True)
+    Postal_code = models.CharField(max_length=10, blank=True, null=True)
+    Country = models.CharField(max_length=50, blank=True, null=True)
+    CreatedBy = models.CharField(max_length=100)
+    CreatedOn = models.DateField()
+
+    def __str__(self):
+        return self.name
+    
+
+
+
+
+
+class UserRole(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+
+    def __str__(self):
+        return self.name
+
+class UserDepartment(models.Model):
+    name = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.name
+
+class User(models.Model):
+    username = models.CharField(max_length=50, unique=True)
+    password = models.CharField(max_length=255)
+    first_name = models.CharField(max_length=50, blank=True, null=True)
+    last_name = models.CharField(max_length=50, blank=True, null=True)
+    email = models.EmailField(max_length=100, blank=True, null=True)
+    role = models.ForeignKey(UserRole, on_delete=models.SET_NULL, null=True)
+    department = models.ForeignKey(UserDepartment, on_delete=models.SET_NULL, null=True)
+    employee_id = models.IntegerField(null=True, blank=True)
+    contact_number = models.CharField(max_length=20, blank=True, null=True)
+    job_title = models.CharField(max_length=100, blank=True, null=True)
+    manager = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True)
+    employee_status = models.CharField(
+        max_length=10,
+        choices=[('Active', 'Active'), ('Inactive', 'Inactive'), ('On Leave', 'On Leave')],
+        default='Active'
+    )
+    date_of_hire = models.DateField(null=True, blank=True)
+    account_creation_date = models.DateTimeField(auto_now_add=True)
+    profile_picture_url = models.CharField(max_length=255, blank=True, null=True)
+    updatedBy = models.CharField(max_length=100)
+    updatedOn = models.DateField()
+
+    def __str__(self):
+        return self.username
+
+
+
+
+
     
