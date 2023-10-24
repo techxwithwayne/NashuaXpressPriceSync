@@ -73,74 +73,84 @@
 
         <div class="card" id="filter_inputs">
             <div class="card-body pb-0">
+              <form method="POST">
+                {% csrf_token %}
             <div class="row">
-                <div class="col-lg-3 col-sm-6 col-12">
-                    <div class="form-group">
-                    <input type="text" placeholder="Enter Name">
-                    </div>
-                    </div>
-                    <div class="col-lg-3 col-sm-6 col-12">
-                        <div class="form-group">
-                        <input type="text" placeholder="Enter Reference No">
-                        </div>
-                        </div>
-                        
-    <div class="col-lg-3 col-sm-6 col-12">
+                                        
+        <div class="col-lg-3 col-sm-6 col-12">
         <div class="form-group">
-        <select class="form-control">
-        <option>Completed</option>
-        <option>Paid</option>
-        </select>
+            <select class="form-select" name="source_currency" required aria-label="select example">
+                <option value>Source Currency</option>
+                <option value="ZAR">ZAR</option>
+                <option value="ZWL">ZWL</option>
+                <option value="USD">USD</option>
+                </select>
         </div>
         </div>
 
         <div class="col-lg-3 col-sm-6 col-12">
             <div class="form-group">
-            <a class="btn btn-filters ms-auto"><img src="{% static 'assets/img/icons/search-whites.svg' %}" alt="img"></a>
+                <select class="form-select" name="target_currency" required aria-label="select example">
+                    <option value>Target Currency</option>
+                    <option value="ZAR">ZAR</option>
+                    <option value="ZWL">ZWL</option>
+                    <option value="USD">USD</option>
+                    </select>
+            </div>
+            </div>
+
+        <div class="col-lg-3 col-sm-6 col-12">
+            <div class="form-group">
+            <button type="submit" name="filter_xrate_search" class="btn btn-filters ms-auto"><img src="{% static 'assets/img/icons/search-whites.svg' %}" alt="img"></button>
             </div>
             </div>
                         
                         
             
     </div>
+  </form>
 </div>
 </div>
 
 
 <div class="table-responsive">
-    <table class="table  datanew">
-    <thead>
-    <tr>
-    <th></th>
-    <th>Date</th>
-    <th>Currency</th>
-    <th>Daily Sales Rate</th>
-    <th>Updated By</th>
-    <th>Updated On</th>
-    <th class="text-center">Action</th>
-    </tr>
-    </thead>
-    <tbody>
-        {% for data in ExchangeRate %}
-    <tr>
-    <td>{{ forloop.counter }}</td>
-    <td>{{ data.rateDate }}</td>
-    <td>{{ data.rateBaseCurrency }}_{{ data.rateTargetCurrency }}</td>
-    <td class="text-red">{{ data.rateValue }}</td>
-    <td>{{ data.rateUpdatedOn }}</td>
-    <td>{{ data.rateUpdatedBy }}</td>
-    <td class="text-end">
-    <a class="me-3" href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#editpayment">
-    <img src="{% static 'assets/img/icons/edit.svg' %}" alt="img">
-    </a>
-    <a class="me-3 confirm-text" href="javascript:void(0);">
-    <img src="{% static 'assets/img/icons/delete.svg' %}" alt="img">
-    </a>
-    </td>
-    </tr>
-    {% endfor %}
-    </tbody>
+    <table class="table datanew">
+        <thead>
+            <tr>
+                <th></th>
+                <th>Date</th>
+                <th>Currency</th>
+                <th>Daily Sales Rate</th>
+                <th>Updated By</th>
+                <th>Updated On</th>
+                <th class="text-center">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for data in ExchangeRate %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ data.rateDate|date:"Y-m-d" }}</td>
+                <td>{{ data.rateBaseCurrency }}_{{ data.rateTargetCurrency }}</td>
+                <td class="text-red">{{ data.rateValue }}</td>
+                <td>{{ data.rateUpdatedOn }}</td>
+                <td>{{ data.rateUpdatedBy }}</td>
+                <td class="text-center">
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="rate_date" value="{{ data.rateDate|date:"Y-m-d" }}">
+                        <input type="hidden" name="source_currency" value="{{ data.rateBaseCurrency }}">
+                        <input type="hidden" name="target_currency" value="{{ data.rateTargetCurrency }}">
+                        <button type="submit" name="delete_ex_rate" class="me-3 confirm-text" style="border:0;background:none;" href="javascript:void(0);">
+                            <img src="{% static 'assets/img/icons/delete.svg' %}" alt="img">
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
     </table>
+    
     </div>
         
 
@@ -154,7 +164,7 @@
 <div class="modal fade" id="addpayment" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" role="document">
     <div class="modal-content">
-    	<form method="POST">
+      <form method="POST">
             {% csrf_token %}
     <div class="modal-header">
     <h5 class="modal-title">Daily Currency Exchange Rate</h5>
@@ -169,7 +179,7 @@
     </div>
 
     <div class="modal-footer ">
-    <button type="submit" class="btn btn-submit">Add Exchange Rate</button>
+    <button type="submit" name="add_exchange_rate" class="btn btn-submit">Add Exchange Rate</button>
     <button type="button" class="btn btn-cancel" data-bs-dismiss="modal">Cancel</button>
     </div>
     </form>

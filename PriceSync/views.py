@@ -48,8 +48,31 @@ class CustomLoginView(LoginView):
 
 @login_required
 def dashboard(request):
-    return render(request, 'ps_blocks/dashboard.html')
-    #return HttpResponse("Hello World")
+    #ZWL to USD rate
+    get_USD_ZWL_Supplier_Cost_Exrate = ExchangeRate.objects.filter(rateBaseCurrency="USD", rateTargetCurrency="ZWL")
+    most_ZAR_USD_recent_rate = get_USD_ZWL_Supplier_Cost_Exrate.aggregate(max_date=Max('rateUpdatedOn'))
+    USD_ZWL_recent_rate = get_USD_ZWL_Supplier_Cost_Exrate.filter(rateUpdatedOn=most_ZAR_USD_recent_rate['max_date']).first()
+    if USD_ZWL_recent_rate:
+        USD_ZWL_rate = USD_ZWL_recent_rate.rateValue
+    else:
+        USD_ZWL_rate = 0
+
+    #ZAR to USD rate
+    get_ZAR_USD_Supplier_Cost_Exrate = ExchangeRate.objects.filter(rateBaseCurrency="ZAR", rateTargetCurrency="USD")
+    most_recent_ZAR_USD_rate = get_ZAR_USD_Supplier_Cost_Exrate.aggregate(max_date=Max('rateUpdatedOn'))
+    ZAR_USD_recent_rate = get_ZAR_USD_Supplier_Cost_Exrate.filter(rateUpdatedOn=most_recent_ZAR_USD_rate['max_date']).first()
+    if ZAR_USD_recent_rate:
+        ZAR_USD_rate = ZAR_USD_recent_rate.rateValue
+    else:
+        ZAR_USD_rate = 0
+
+    #Xpress total
+    xpress_total_num = MasterInventory.objects.all().count()
+
+    #Total Suppliers
+    suppliers_total_num = Suppliers.objects.all().count()
+
+    return render(request, 'ps_blocks/dashboard.html',{'USD_ZWL':USD_ZWL_rate, 'ZAR_USD':ZAR_USD_rate, 'xpress_tt': xpress_total_num, 'supplier_tt':suppliers_total_num})
 
 
 
@@ -66,43 +89,68 @@ from datetime import datetime  # Import the datetime module
 @login_required
 def rateupdate(request):
     exchange_rate_model = ExchangeRate.objects.order_by('-rateDate')
-    
-    if request.method == 'POST':
-        form = ExchangeRateForm(request.POST)
-        
-        if form.is_valid():
-            data = form.cleaned_data
-            rate_date = data['rateDate']
-            base_currency = data['rateBaseCurrency']
-            target_currency = data['rateTargetCurrency']
 
-            # Check if the rate already exists
-            if not ExchangeRate.objects.filter(
-                rateDate=rate_date,
-                rateBaseCurrency=base_currency,
-                rateTargetCurrency=target_currency
-            ).exists():
-                try:
-                    # Data from the form is valid
-                    exchange_rate = form.save(commit=False)  # Create an ExchangeRate object but don't save it yet
-                    exchange_rate.rateUpdatedBy = "Keegan Solomon"  # You can set the user here
-                    exchange_rate.rateUpdatedOn = datetime.now()  # Use timezone.now() if you're working with time zones
-                    exchange_rate.save()
-                    
-                    form_sub_success = "Rate updated successfully."
-                    return render(request, 'ps_blocks/rateUpdateLog.html', {'form_sub_success': form_sub_success, 'form': form, 'ExchangeRate': exchange_rate_model})
-                
-                except Exception as e:
-                    save_err = "Error saving to the database"
-                    return render(request, 'ps_blocks/rateUpdateLog.html', {'save_err': save_err, 'form': form, 'ExchangeRate': exchange_rate_model})
-            
-            else:
-                form_sub_dup = "The specified rate with the same date and currencies already exists."
-                return render(request, 'ps_blocks/rateUpdateLog.html', {'form_sub_dup': form_sub_dup, 'form': form, 'ExchangeRate': exchange_rate_model})
-    
+    if request.method == 'POST':
+        if 'filter_xrate_search' in request.POST:
+            form = ExchangeRateForm()
+            source_rate = request.POST.get('source_currency')
+            dest_rate = request.POST.get('target_currency')
+            result = ExchangeRate.objects.filter(rateBaseCurrency=source_rate, rateTargetCurrency=dest_rate).order_by('-rateDate')
+            return render(request, 'ps_blocks/rateUpdateLog.html', {'form': form, 'ExchangeRate': result})
+        elif 'delete_ex_rate' in request.POST:
+            form = ExchangeRateForm()
+            rate_date = request.POST.get('rate_date')
+            source_currency = request.POST.get('source_currency')
+            target_currency = request.POST.get('target_currency')
+        
+            try:
+                exchange_rate = ExchangeRate.objects.get(
+                    rateDate=rate_date,
+                    rateBaseCurrency=source_currency,
+                    rateTargetCurrency=target_currency
+                )
+                exchange_rate.delete()
+                results = f"Success! {source_currency} to {target_currency} rate as at {rate_date} removed"
+                return render(request, 'ps_blocks/rateUpdateLog.html', {'form': form,'ExchangeRate': exchange_rate_model, 'form_sub_success':results})
+            except ExchangeRate.DoesNotExist:
+                results = "Rate not found."
+                return render(request, 'ps_blocks/rateUpdateLog.html', {'form': form,'ExchangeRate': exchange_rate_model, 'form_sub_dup':results})
+        
+        elif 'add_exchange_rate' in request.POST:
+            form = ExchangeRateForm(request.POST)
+            if form.is_valid():
+                data = form.cleaned_data
+                rate_date = data['rateDate']
+                base_currency = data['rateBaseCurrency']
+                target_currency = data['rateTargetCurrency']
+
+                # Check if the rate already exists
+                if not ExchangeRate.objects.filter(
+                    rateDate=rate_date,
+                    rateBaseCurrency=base_currency,
+                    rateTargetCurrency=target_currency
+                ).exists():
+                    try:
+                        # Data from the form is valid
+                        exchange_rate = form.save(commit=False)  # Create an ExchangeRate object but don't save it yet
+                        exchange_rate.rateUpdatedBy = "Keegan Solomon"  # You can set the user here
+                        exchange_rate.rateUpdatedOn = datetime.now()  # Use timezone.now() if you're working with time zones
+                        exchange_rate.save()
+
+                        form_sub_success = "Rate updated successfully."
+                        return render(request, 'ps_blocks/rateUpdateLog.html', {'form_sub_success': form_sub_success, 'form': form, 'ExchangeRate': exchange_rate_model})
+
+                    except Exception as e:
+                        save_err = "Error saving to the database"
+                        return render(request, 'ps_blocks/rateUpdateLog.html', {'save_err': save_err, 'form': form, 'ExchangeRate': exchange_rate_model})
+
+                else:
+                    form_sub_dup = "The specified rate with the same date and currencies already exists."
+                    return render(request, 'ps_blocks/rateUpdateLog.html', {'form_sub_dup': form_sub_dup, 'form': form, 'ExchangeRate': exchange_rate_model})
+
     else:
         form = ExchangeRateForm()
-    
+
     return render(request, 'ps_blocks/rateUpdateLog.html', {'form': form, 'ExchangeRate': exchange_rate_model})
 
 
@@ -120,21 +168,11 @@ def costfactors(request):
     cost_factors_model = ProductCostingFactors.objects.order_by('StockCategory')
 
     if request.method == 'POST':
-        form = ProductCostingFactorsform(request.POST)  # Replace 'YourForm' with your actual form class name
-
-        #if form.is_valid():
-            #data = form.cleaned_data
-            #cf_supplier_name = data['cf_supplier_name']
-            #cf_category = data['cf_category']
-            #cf_currency = data['cf_currency']
-            #cf_exc_rate = data['ExchangeRateFactor']
-            #cf_duty = data['DutyFactor']
-            #cf_freight = data['FreightChargesFactor']
-            #cf_markup = data['MarkupFactor']
+        form = ProductCostingFactorsform(request.POST)  
         cf_supplier_name = request.POST.get('supplier_name')
         cf_category = request.POST.get('category')
         cf_currency = request.POST.get('currency')
-        cf_exc_rate = request.POST.get('exc_rate')
+        cf_calc_modifier = request.POST.get('calc_modifier')
         cf_duty = request.POST.get('duty')
         cf_freight = request.POST.get('freight_charges')
         cf_markup = request.POST.get('markup')
@@ -152,7 +190,7 @@ def costfactors(request):
                         StockCategory=cf_category,
                         SupplierName=cf_supplier_name,
                         CurrencyCode=cf_currency,
-                        ExchangeRateFactor=cf_exc_rate,
+                        CalculationModifier=cf_calc_modifier,
                         DutyFactor=cf_duty,
                         FreightChargesFactor=cf_freight,
                         MarkupFactor=cf_markup,
@@ -266,84 +304,73 @@ def viewpricelist(request):
 
 @login_required
 def remoteinventoryaccess(request):
-    
-# Configure logging
     logging.basicConfig(filename='app.log', level=logging.ERROR)
 
-    if request.method == 'POST':
-        try:
-            # Execute the SELECT SQL statement
-            conn = get_remote_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("""
-                    SELECT LTRIM(RTRIM(fldInventoryCode)) AS prodCode, 
-                           fldDescription AS prodDesc, 
-                           fldCategoryDesc AS prodCategory, 
-                           fldCreateDate AS prodDOC
-                    FROM [nashua-eva].BPO2_NASH_PROD.dbo.vw_INVNInventory;
-                """)
-
-            # Fetch the results
-            results = cursor.fetchall()
-
-            # Execute the INSERT SQL statement if SELECT was successful
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            r_count = 0
-            for row in results:
-                prodCode = row[0]
-    
-                # Check if the prodCode already exists in the table
-                cursor.execute("SELECT 1 FROM PriceSync_masterinventory WHERE prodCode = ?;", (prodCode,))
-                if not cursor.fetchone():
-                    # Insert the row if it doesn't exist
-                    cursor.execute("""
-                    INSERT INTO PriceSync_masterinventory (prodCode, prodDesc, prodCategory, prodDOC)
-                    VALUES (?, ?, ?, ?);
-                    """, row)
-                    # Record the number of rows inserted
-                    r_count = r_count + 1
-
-            # Commit the changes
-            conn.commit()
-
-            sql2 = """
-INSERT INTO PriceSync_productcostmapping (prodSupplierCode, prodNashuaCode, prodDesc, prodCategory, prodSupplierName, prodSupplierCurrency, prodCalculationModifier, prodSupplierCost, prodSupplierCostUSD, prodSupplierLandedCost_USD, prodNashuaSellingPrice_USD, prodCalculatedPriceDate)
-SELECT prodCode, '', prodDesc, prodCategory, '', '', 'Null', '0.00', '0.00', '0.00', '0.00', prodDOC
-FROM PriceSync_masterinventory
-WHERE prodCode NOT IN (SELECT prodSupplierCode FROM PriceSync_productcostmapping);
-"""
-            cursor.execute(sql2)
-            conn.commit()
-
-            # Close the cursor and connection
-            cursor.close()
-            conn.close()
-
-
-            conn = get_remote_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM [nashua-eva].BPO2_NASH_PROD.dbo.vw_INVNInventory")
-            result = cursor.fetchall()
-            success_message = "Success: Data for " + str(r_count) + " rows has been successfully synced from BPO."
-            return render(request, 'ps_blocks/remoteinventoryaccess.html', {'results': result, 'success_message': success_message})
-
-
-        except Exception as e:
-            # Handle exceptions or errors here
-            return HttpResponse(f"Error: {str(e)}")
-
     try:
-        conn = get_remote_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM [nashua-eva].BPO2_NASH_PROD.dbo.vw_INVNInventory")
-        result = cursor.fetchall()
-    except Exception as e:
-        error_message = f"Error: {str(e)}"
-        #return render(request, 'error_template.html', {'error_message': error_message})
+        if request.method == 'POST':
+            with get_remote_db_connection() as remote_conn, get_db_connection() as local_conn:
+                remote_cursor = remote_conn.cursor()
+                local_cursor = local_conn.cursor()
+                r_count, u_count = 0, 0
 
-    # Pass the results to the template
-    return render(request, 'ps_blocks/remoteinventoryaccess.html', {'results': result})
+                # Execute the SELECT SQL statement
+                remote_cursor.execute("""
+                SELECT LTRIM(RTRIM(fldInventoryID)) AS prodID,
+                       LTRIM(RTRIM(fldInventoryCode)) AS prodCode, 
+                       fldDescription AS prodDesc, 
+                       fldCategoryDesc AS prodCategory, 
+                       fldCreateDate AS prodDOC
+                FROM [nashua-eva].BPO2_NASH_PROD.dbo.vw_INVNInventory;
+            """)
+                results = remote_cursor.fetchall()
+
+                for row in results:
+                    prodID, prodCode, prodCategory = row[0], row[1], row[3]
+
+                    # Check if the prodCode already exists in the table
+                    local_cursor.execute("SELECT 1 FROM PriceSync_masterinventory WHERE prodCode = ? AND prodID = ? AND prodCategory = ?;", (prodCode, prodID, prodCategory))
+                    if not local_cursor.fetchone():
+                        local_cursor.execute("SELECT 1 FROM PriceSync_masterinventory WHERE prodID = ? AND prodCategory = ?;", (prodID, prodCategory))
+                        master_exists = local_cursor.fetchone()
+
+                        if not master_exists:
+                            # Insert the row if it doesn't exist in PriceSync_masterinventory
+                            local_cursor.execute("INSERT INTO PriceSync_masterinventory (prodID, prodCode, prodDesc, prodCategory, prodDOC) VALUES (?, ?, ?, ?, ?);", row)
+                            r_count += 1
+                        else:
+                            # Update the existing row in PriceSync_masterinventory
+                            local_cursor.execute("UPDATE PriceSync_masterinventory SET prodCode = ? WHERE prodID = ? AND prodCategory = ?;", (prodCode, prodID, prodCategory))
+                            local_cursor.execute("UPDATE PriceSync_productcostmapping SET prodSupplierCode = ? WHERE prodID = ? AND prodCategory = ?;", (prodCode, prodID, prodCategory))
+                            u_count += local_cursor.rowcount
+
+                # Execute the second SQL statement
+                local_cursor.execute("""
+                    INSERT INTO PriceSync_productcostmapping (prodID, prodSupplierCode, prodNashuaCode, prodDesc, prodCategory, prodSupplierName, prodSupplierCurrency, prodCalculationModifier, prodSupplierCost, prodSupplierCostUSD, prodSupplierLandedCost_USD, prodNashuaSellingPrice_USD, prodCalculatedPriceDate)
+                    SELECT prodID, prodCode, '', prodDesc, prodCategory, '', '', 'Null', '0.00', '0.00', '0.00', '0.00', prodDOC
+                    FROM PriceSync_masterinventory
+                    WHERE prodCode NOT IN (SELECT prodSupplierCode FROM PriceSync_productcostmapping);
+                    """)
+
+                # Commit the changes
+                local_conn.commit()
+
+                # Reconnect to the remote database for data retrieval
+                remote_cursor.execute("SELECT * FROM [nashua-eva].BPO2_NASH_PROD.dbo.vw_INVNInventory")
+                result = remote_cursor.fetchall()
+                success_message = f"Success: Data for {r_count} rows inserted and {u_count} rows updated."
+
+                return render(request, 'ps_blocks/remoteinventoryaccess.html', {'results': result, 'success_message': success_message})
+
+        remote_conn = get_remote_db_connection()
+        remote_cursor = remote_conn.cursor()
+        remote_cursor.execute("SELECT * FROM [nashua-eva].BPO2_NASH_PROD.dbo.vw_INVNInventory")
+        result = remote_cursor.fetchall()
+        return render(request, 'ps_blocks/remoteinventoryaccess.html', {'results': result})
+
+    except Exception as e:
+        # Handle exceptions or errors more specifically
+        return HttpResponse(f"Error: {str(e)}")
+
 
 
 @login_required
@@ -534,6 +561,93 @@ def lcostcalculations(request):
             required_fields_msg = "Supplier Name or Currency fields are empty"
             return render(request, 'ps_blocks/lcostcalculation.html', {'results': rows_from_procostmapping, 'suppliers': suppliers, 'missing_fields': required_fields_msg})
 
+        selected_products_dataset = ProductCostMapping.objects.all()
+
+        if not selected_products_dataset.exists():
+            empty_list_msg = "There are no products ready for calculation"
+            return render(request, 'ps_blocks/lcostcalculation.html', {'results': rows_from_procostmapping, 'empty_list': empty_list_msg})
+
+        # Get the most recent USD conversion rate
+        get_usd_supplier_cost_exrate = ExchangeRate.objects.filter(rateBaseCurrency="ZAR", rateTargetCurrency="USD")
+        most_recent_rate = get_usd_supplier_cost_exrate.aggregate(max_date=Max('rateUpdatedOn'))
+        most_recent_rate_record = get_usd_supplier_cost_exrate.filter(rateUpdatedOn=most_recent_rate['max_date']).first()
+
+        if most_recent_rate_record:
+            conversion_rate = most_recent_rate_record.rateValue
+        else:
+            rate_not_found_msg = "The Conversion Rate is not found"
+            return render(request, 'ps_blocks/lcostcalculation.html', {'results': rows_from_procostmapping, 'rate_not_found': rate_not_found_msg})
+
+        for prod_row in selected_products_dataset:
+            if prod_row.prodCategory and prod_row.prodSupplierCurrency == "ZAR":
+                usd_supplier_cost = prod_row.prodSupplierCost / conversion_rate
+                matching_row_in_cost_factors = ProductCostingFactors.objects.filter(StockCategory=prod_row.prodCategory, CurrencyCode="ZAR")
+
+                if matching_row_in_cost_factors.count() != 1:
+                    count_error_msg = "Factor row not found or too many records found! Update in Cost Factor Panel"
+                    return render(request, 'ps_blocks/lcostcalculation.html', {'results': rows_from_procostmapping, 'count_error': count_error_msg})
+                else:
+                    cost_factors = matching_row_in_cost_factors.first()
+                    duty = cost_factors.DutyFactor
+                    freight = cost_factors.FreightChargesFactor
+                    markup = cost_factors.MarkupFactor
+
+                    # Initialize landing_cost_usd and nashua_selling_price_usd with usd_supplier_cost
+                    landing_cost_usd = usd_supplier_cost
+                    nashua_selling_price_usd = usd_supplier_cost
+
+                    # Calculate landing_cost_usd by excluding variables with a value of 0
+                    if duty != 0:
+                        landing_cost_usd *= duty
+                    if freight != 0:
+                        landing_cost_usd *= freight
+                    if markup != 0:
+                        nashua_selling_price_usd *= markup
+
+
+
+                    prod_row.prodSupplierCostUSD = usd_supplier_cost
+                    prod_row.prodSupplierLandedCost_USD = landing_cost_usd
+                    prod_row.prodNashuaSellingPrice_USD = nashua_selling_price_usd
+                    prod_row.prodCalculatedPriceDate = datetime.now()
+                    prod_row.save()
+
+        success_calculation = "Landed Cost Calculated Successfully!"
+        return render(request, 'ps_blocks/lcostcalculation.html', {'results': rows_from_procostmapping, 'count_error': success_calculation})
+
+    return render(request, 'ps_blocks/lcostcalculation.html', {'results': rows_from_procostmapping, 'suppliers': suppliers})
+
+
+"""
+
+
+
+            if prodRow.prodCategory == "" and prodRow.prodSupplierCurrency == "":
+        
+
+
+
+
+        
+        if prodCate !=  "" AND currency != "":
+        elif prodCate !=  "" AND currency != "ZWL":
+        elif prodCate !=  "" AND currency != "USD":
+        elif prodCate !=  "" AND productCode Like "%(L)"
+        elif prodCate !=  "" AND currency != "ZAR":
+            
+        else:
+            h=2 
+"""
+
+
+"""
+        supplier_name = request.POST.get('supplier_name')
+        lc_currency = request.POST.get('lc_currency')
+
+        if not supplier_name or not lc_currency:
+            required_fields_msg = "Supplier Name or Currency fields are empty"
+            return render(request, 'ps_blocks/lcostcalculation.html', {'results': rows_from_procostmapping, 'suppliers': suppliers, 'missing_fields': required_fields_msg})
+
         selected_products_dataset = ProductCostMapping.objects.filter(prodSupplierName=supplier_name, prodSupplierCurrency=lc_currency)
 
         if not selected_products_dataset.exists():
@@ -567,7 +681,7 @@ def lcostcalculations(request):
         for prodRow in selected_products_dataset:
             if prodRow.prodSupplierCurrency != "USD":
                 USD_SupplierCost = prodRow.prodSupplierCost / conversion_rate
-                """
+ """               """
                 if prodRow.prodSupplierCode like "%(L)":
                     NashuaSellingPrice_USD = markup * USD_SupplierCost
                     prodRow.prodSupplierCostUSD = USD_SupplierCost
@@ -576,7 +690,7 @@ def lcostcalculations(request):
                     prodRow.prodCalculatedPriceDate = datetime.now()
                     prodRow.save()
                     """                 
-
+"""
                 if prodRow.prodCalculationModifier == "Null":
                     #LandingCost_USD = USD_SupplierCost * ex_rate * duty * freight
                     LandingCost_USD = USD_SupplierCost * duty * freight
@@ -592,6 +706,20 @@ def lcostcalculations(request):
         return render(request, 'ps_blocks/lcostcalculation.html', {'results': rows_from_procostmapping, 'count_error': success_calculation})
 
     return render(request, 'ps_blocks/lcostcalculation.html', {'results': rows_from_procostmapping, 'suppliers': suppliers})
+
+"""
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

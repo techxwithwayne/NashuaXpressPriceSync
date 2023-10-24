@@ -13,7 +13,7 @@
 
 
     <li class="submenu">
-        <a href="javascript:void(0);"><i data-feather="users"></i><span>Manage Pricelist</span><span class="menu-arrow"></span></a>
+        <a href="javascript:void(0);"><i data-feather="layers"></i><span>Manage Pricelist</span><span class="menu-arrow"></span></a>
         <ul>
         <li><a href="{% url 'uploadpricelist' %}">Upload Pricelist</a></li>
         <li><a href="{% url 'pricelist' %}">View Current Pricelist</a></li>
@@ -24,32 +24,30 @@
 
 
     <li class="submenu-open">
-    <h6 class="submenu-hdr">Rate and Pricing Management</h6>
+    <h6 class="submenu-hdr">Rate and Pricing Factors</h6>
     <ul>
     <li><a href="{% url 'rateupdatelog' %}"><i data-feather="box"></i><span>Update Rates</span></a></li>
     <li><a href="{% url 'costfactorspanel' %}"><i data-feather="codepen"></i><span>Cost Factors Panel</span></a></li>
     </ul>
     </li>
     <li class="submenu-open">
-    <h6 class="submenu-hdr">Product Inventory Management</h6>
+    <h6 class="submenu-hdr">Inventory Management</h6>
     <ul>
-    <li><a href="{% url 'bpoinventory' %}"><i data-feather="shopping-cart"></i><span>BPO Inventory</span></a></li>
-    <li><a href="{% url 'xpressinventory' %}"><i data-feather="shopping-cart"></i><span>Xpress Inventory</span></a></li>
-    <li><a href="{% url 'bpoexclusive' %}"><i data-feather="shopping-cart"></i><span>BPO-Exclusive</span></a></li>
-    <li><a href="{% url 'xpressexclusive' %}"><i data-feather="copy"></i><span>Xpress-Exclusive</span></a></li>
+    <li><a href="{% url 'bpoinventory' %}"><i data-feather="database"></i><span>BPO Inventory</span></a></li>
+    <li><a href="{% url 'xpressinventory' %}"><i data-feather="copy"></i><span>Xpress Inventory</span></a></li>
+    <li><a href="{% url 'bpoexclusive' %}"><i data-feather="file-text"></i><span>BPO-Exclusive</span></a></li>
+    <li><a href="{% url 'xpressexclusive' %}"><i data-feather="file-text"></i><span>Xpress-Exclusive</span></a></li>
     </ul>
     </li>
 
 
    
         <li class="submenu-open">
-        <h6 class="submenu-hdr">Product Inventory Management</h6>
+        <h6 class="submenu-hdr">Sales Pricing Management</h6>
         <ul>    
-        <li><a href="{% url 'syncinventory' %}"><i data-feather="shopping-cart"></i><span>Supplier Cost Sync</span></a></li>
-        <li><a href="{% url 'inventory' %}"><i data-feather="shopping-cart"></i><span>Inventory Pricing</span></a></li>
-        <li><a href="{% url 'calculatecost' %}"><i data-feather="copy"></i><span>L/Cost Calculation</span></a></li>
-        <li><a href="{% url 'integrationsettings' %}"><i data-feather="file-text"></i><span>Integration Settings</span></a></li>
-        <li><a href="{% url 'BPOreporting' %}"><i data-feather="copy"></i><span>BPO Reports</span></a></li>
+        <li><a href="{% url 'syncinventory' %}"><i data-feather="refresh-cw"></i><span>Supplier Cost Sync</span></a></li>
+        <li><a href="{% url 'calculatecost' %}"><i data-feather="shuffle"></i><span>L/Cost Calculation</span></a></li>
+        <li><a href="{% url 'inventory' %}"><i data-feather="file"></i><span>Inventory Pricing</span></a></li>
         </ul>
         </li>
 

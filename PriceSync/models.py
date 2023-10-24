@@ -33,7 +33,8 @@ class ExchangeRate(models.Model):
 
 
 class MasterInventory(models.Model):
-    prodCode = models.CharField(max_length=40, primary_key=True, null=False, blank=False, verbose_name='Product Code', help_text='Enter the product code.')
+    prodID = models.CharField(max_length=40, primary_key=True, null=False, blank=False)
+    prodCode = models.CharField(max_length=40, default=0, null=False, blank=False, verbose_name='Product Code', help_text='Enter the product code.')
     prodDesc = models.TextField(blank=True, null=True)
     prodCategory = models.CharField(max_length=255, verbose_name="Product Category")
     prodDOC = models.DateField(verbose_name="Date of Creation")
@@ -42,7 +43,8 @@ class MasterInventory(models.Model):
 
 
 class ProductCostMapping(models.Model):
-    prodSupplierCode = models.CharField(max_length=40, primary_key=True, null=False, blank=False, verbose_name='Product Supplier Code', help_text='Enter the product supplier code.')
+    prodID = models.CharField(max_length=40, primary_key=True, null=False, blank=False)
+    prodSupplierCode = models.CharField(max_length=40, default=0, null=False, blank=False, verbose_name='Product Supplier Code', help_text='Enter the product supplier code.')
     prodNashuaCode = models.CharField(max_length=40, null=True, blank=True, verbose_name='Product Nashua Code', help_text='Enter the product nashua code.')
     prodDesc = models.TextField(blank=True, null=True)
     prodCategory = models.CharField(max_length=255, verbose_name="Product Category")
@@ -61,8 +63,8 @@ class ProductCostMapping(models.Model):
 class ProductCostingFactors(models.Model):
     StockCategory = models.CharField(max_length=255, verbose_name="Product Category")
     SupplierName = models.CharField(max_length=255, verbose_name="Supplier Name", blank=True, null=True)
+    CalculationModifier = models.CharField(max_length=255, blank=True, null=True)
     CurrencyCode = models.CharField(max_length=3)
-    ExchangeRateFactor = models.DecimalField(max_digits=18, decimal_places=2, default=0.00)
     DutyFactor = models.DecimalField(max_digits=18, decimal_places=2, default=0.00)
     FreightChargesFactor = models.DecimalField(max_digits=18, decimal_places=2, default=0.00)
     MarkupFactor = models.DecimalField(max_digits=18, decimal_places=2, default=0.00)
