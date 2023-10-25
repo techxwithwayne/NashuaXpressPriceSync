@@ -538,7 +538,10 @@ def xpressexclusiveaccess(request):
 
 @login_required
 def inventorypricing(request):
-    return render(request, 'ps_blocks/under_maintenance.html')
+    # Configure logging
+    logging.basicConfig(filename='app.log', level=logging.ERROR)
+    rows_from_procostmapping = ProductCostMapping.objects.all()
+    return render(request, 'ps_blocks/salesinventory.html', {'results': rows_from_procostmapping})
 
 
 
@@ -554,13 +557,6 @@ def lcostcalculations(request):
     rows_from_procostmapping = ProductCostMapping.objects.all()
 
     if request.method == 'POST':
-        supplier_name = request.POST.get('supplier_name')
-        lc_currency = request.POST.get('lc_currency')
-
-        if not supplier_name or not lc_currency:
-            required_fields_msg = "Supplier Name or Currency fields are empty"
-            return render(request, 'ps_blocks/lcostcalculation.html', {'results': rows_from_procostmapping, 'suppliers': suppliers, 'missing_fields': required_fields_msg})
-
         selected_products_dataset = ProductCostMapping.objects.all()
 
         if not selected_products_dataset.exists():
@@ -579,7 +575,7 @@ def lcostcalculations(request):
             return render(request, 'ps_blocks/lcostcalculation.html', {'results': rows_from_procostmapping, 'rate_not_found': rate_not_found_msg})
 
         for prod_row in selected_products_dataset:
-            if prod_row.prodCategory and prod_row.prodSupplierCurrency == "ZAR":
+            if prod_row.prodCategory and prod_row.prodSupplierCurrency == "ZAR" and not prod_row.prodSupplierCode.endswith("(L)"):
                 usd_supplier_cost = prod_row.prodSupplierCost / conversion_rate
                 matching_row_in_cost_factors = ProductCostingFactors.objects.filter(StockCategory=prod_row.prodCategory, CurrencyCode="ZAR")
 
@@ -599,8 +595,10 @@ def lcostcalculations(request):
                     # Calculate landing_cost_usd by excluding variables with a value of 0
                     if duty != 0:
                         landing_cost_usd *= duty
+                        nashua_selling_price_usd *= duty
                     if freight != 0:
                         landing_cost_usd *= freight
+                        nashua_selling_price_usd *= freight
                     if markup != 0:
                         nashua_selling_price_usd *= markup
 
@@ -611,6 +609,32 @@ def lcostcalculations(request):
                     prod_row.prodNashuaSellingPrice_USD = nashua_selling_price_usd
                     prod_row.prodCalculatedPriceDate = datetime.now()
                     prod_row.save()
+            elif prod_row.prodCategory and prod_row.prodSupplierCurrency == "USD" and prod_row.prodSupplierCode.endswith("(L)"):
+                matching_row_in_cost_factors = ProductCostingFactors.objects.filter(StockCategory=prod_row.prodCategory, CurrencyCode="ZAR")
+
+                if matching_row_in_cost_factors.count() != 1:
+                    count_error_msg = "Factor row not found or too many records found! Update in Cost Factor Panel"
+                    return render(request, 'ps_blocks/lcostcalculation.html', {'results': rows_from_procostmapping, 'count_error': count_error_msg})
+                else:
+                    cost_factors = matching_row_in_cost_factors.first()
+                    markup = cost_factors.MarkupFactor
+
+                    # Initialize landing_cost_usd and nashua_selling_price_usd with usd_supplier_cost
+                    landing_cost_usd = prod_row.prodSupplierCost
+                    nashua_selling_price_usd = prod_row.prodSupplierCost
+
+                    # Calculate landing_cost_usd by excluding variables with a value of 0
+                    if markup != 0:
+                        nashua_selling_price_usd *= markup
+
+
+
+                    prod_row.prodSupplierCostUSD = prod_row.prodSupplierCost
+                    prod_row.prodSupplierLandedCost_USD = landing_cost_usd
+                    prod_row.prodNashuaSellingPrice_USD = nashua_selling_price_usd
+                    prod_row.prodCalculatedPriceDate = datetime.now()
+                    prod_row.save()
+
 
         success_calculation = "Landed Cost Calculated Successfully!"
         return render(request, 'ps_blocks/lcostcalculation.html', {'results': rows_from_procostmapping, 'count_error': success_calculation})
