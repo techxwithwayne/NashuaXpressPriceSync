@@ -1,22 +1,24 @@
-from django.shortcuts import render
-from django.http import HttpResponse
+from django.shortcuts import render, redirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse_lazy
 from tablib import Dataset
-from .models import PriceList, ExchangeRate, ProductCostMapping, MasterInventory, ProductCostingFactors, Suppliers, User
+from .models import PriceList, ExchangeRate, ProductCostMapping, MasterInventory, ProductCostingFactors, Suppliers
 from .resources import pricelistResource
 from .db_utils import get_db_connection, get_remote_db_connection
 from datetime import datetime
-from .forms import ExchangeRateForm, ProductCostingFactorsform, Userform
+from .forms import ExchangeRateForm, ProductCostingFactorsform, UpdateProductCostingFactorsForm, Userform, UpdateProductCostMappingForm, RegisterForm
 from django.db.utils import DatabaseError
 from django.db import connection, transaction
 import logging
 from django.db.models import Max
 from django.db.models import Q
 from django.contrib.auth.hashers import make_password
+from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView
+from django.urls import reverse
 
-
+from django.contrib.auth.models import User
 
 # create your views here
 
@@ -25,25 +27,39 @@ from django.contrib.auth.views import LoginView
 # LoginRequiredMixin and login_required serve a similar purpose in Django
 #from django.contrib.auth.mixins import LoginRequiredMixin
 #from django.views.generic import View
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.views import LoginView
+from django.shortcuts import render, redirect
+from django.urls import reverse_lazy
+from django import forms
+
+class CustomLoginForm(AuthenticationForm):
+    # Customize your login form fields, labels, and widgets here if needed
+    username = forms.CharField(
+        widget=forms.TextInput(attrs={
+            'placeholder': 'Enter your email address',
+            'autofocus': 'autofocus',
+            'autocapitalize': 'none',
+            'autocomplete': 'username',
+            'maxlength': '150',
+            'required': 'required',
+            'id': 'id_username',
+        })
+    )
+
+    password = forms.CharField(
+        widget=forms.PasswordInput(attrs={
+            'class': 'pass-input',
+            'placeholder': 'Enter your password',
+            'autocomplete': 'current-password',
+            'required': 'required',
+            'id': 'id_password',
+        })
+    )
+
 class CustomLoginView(LoginView):
     template_name = "ps_blocks/login.html"
-    fields = '__all__'
-    redirect_authenticated_user = True
-    def get_success_url(self):
-        return reverse_lazy('dashboard')
 
-
-# function-based views (FBVs)
-#from django.contrib.auth.views import LoginView
-#from django.urls import reverse_lazy
-#from django.shortcuts import render, redirect
-
-#def custom_login_view(request):
-#    if request.user.is_authenticated:
-#        return redirect('dashboard')
-#
-#    if request.method == 'POST':
-#    return render(request, 'ps_blocks/login.html')
 
 
 @login_required
@@ -133,7 +149,7 @@ def rateupdate(request):
                     try:
                         # Data from the form is valid
                         exchange_rate = form.save(commit=False)  # Create an ExchangeRate object but don't save it yet
-                        exchange_rate.rateUpdatedBy = "Keegan Solomon"  # You can set the user here
+                        exchange_rate.rateUpdatedBy = request.user  # You can set the user here
                         exchange_rate.rateUpdatedOn = datetime.now()  # Use timezone.now() if you're working with time zones
                         exchange_rate.save()
 
@@ -158,67 +174,140 @@ def rateupdate(request):
 
 
 
-
 @login_required
 def costfactors(request):
     # Configure logging
     logging.basicConfig(filename='app.log', level=logging.ERROR)
+
     categories = ProductCostMapping.objects.values_list('prodCategory', flat=True).distinct().order_by('prodCategory')
     suppliers = Suppliers.objects.values_list('SupplierName', flat=True).distinct().order_by('SupplierName')
     cost_factors_model = ProductCostingFactors.objects.order_by('StockCategory')
 
     if request.method == 'POST':
-        form = ProductCostingFactorsform(request.POST)  
-        cf_supplier_name = request.POST.get('supplier_name')
-        cf_category = request.POST.get('category')
-        cf_currency = request.POST.get('currency')
-        cf_calc_modifier = request.POST.get('calc_modifier')
-        cf_duty = request.POST.get('duty')
-        cf_freight = request.POST.get('freight_charges')
-        cf_markup = request.POST.get('markup')
-        cf_UpdatedBy = "Keegan Solomon" 
-        cf_UpdatedOn = datetime.now() 
+        form = ProductCostingFactorsform(request.POST)
 
-        # Check if the rate already exists
-        if not ProductCostingFactors.objects.filter(
-            StockCategory=cf_category,
-            SupplierName=cf_supplier_name,
-            CurrencyCode=cf_currency
-        ).exists():
+        if 'create_new_factor' in request.POST:
+            if form.is_valid():
+                cf_supplier_name = request.POST.get('supplier_name')
+                cf_category = request.POST.get('category')
+                cf_currency = request.POST.get('currency')
+                cf_calc_modifier = request.POST.get('calc_modifier')
+                cf_duty = request.POST.get('duty')
+                cf_freight = request.POST.get('freight_charges')
+                cf_markup = request.POST.get('markup')
+                cf_UpdatedBy = request.user
+                cf_UpdatedOn = datetime.now()
+
                 try:
-                    new_cost_factor = ProductCostingFactors(
+                    new_cost_factor, created = ProductCostingFactors.objects.get_or_create(
                         StockCategory=cf_category,
                         SupplierName=cf_supplier_name,
                         CurrencyCode=cf_currency,
                         CalculationModifier=cf_calc_modifier,
-                        DutyFactor=cf_duty,
-                        FreightChargesFactor=cf_freight,
-                        MarkupFactor=cf_markup,
-                        UpdatedBy = cf_UpdatedBy,
-                        UpdatedOn = cf_UpdatedOn,
+                        defaults={
+                            'DutyFactor': cf_duty,
+                            'FreightChargesFactor': cf_freight,
+                            'MarkupFactor': cf_markup,
+                            'UpdatedBy': cf_UpdatedBy,
+                            'UpdatedOn': cf_UpdatedOn
+                        }
                     )
-                    new_cost_factor.save()
 
-                    form_sub_success = "Cost Factor Added Successfully."
-                    return render(request, 'ps_blocks/costfactorspanel.html', {'results': cost_factors_model, 'form': form, 'form_sub_success': form_sub_success})
+                    if created:
+                        form_sub_success = "Cost Factor Added Successfully."
+                        return render(request, 'ps_blocks/costfactorspanel.html', {'results': cost_factors_model, 'form': form, 'form_sub_success': form_sub_success})
+                    else:
+                        form_sub_dup = "The specified cost factors already exist."
+                        return render(request, 'ps_blocks/costfactorspanel.html', {'form_sub_dup': form_sub_dup, 'form': form, 'results': cost_factors_model})
 
                 except Exception as e:
                     save_err = "Error saving to the database"
                     return render(request, 'ps_blocks/costfactorspanel.html', {'save_err': save_err, 'form': form, 'results': cost_factors_model})
-            
-        else:
-            form_sub_dup = "The specified cost factors already exist."
+
+        elif 'update_cost_factor' in request.POST:
+            form_sub_dup = "edit selected"
             return render(request, 'ps_blocks/costfactorspanel.html', {'form_sub_dup': form_sub_dup, 'form': form, 'results': cost_factors_model})
 
+        elif 'delete_cost_factor' in request.POST:
+            costf_category = request.POST.get('category')
+            costf_supplier = request.POST.get('supplier')
+            costf_currency = request.POST.get('currency')
+            costf_c_modifier = request.POST.get('c_modifier')
+
+            try:
+                costing_factors = ProductCostingFactors.objects.get(
+                    StockCategory=costf_category,
+                    SupplierName=costf_supplier,
+                    CurrencyCode=costf_currency,
+                    CalculationModifier=costf_c_modifier
+                )
+                costing_factors.delete()
+                results = f"Success! {costf_category} cost factor with {costf_currency} currency removed"
+                return render(request, 'ps_blocks/rateUpdateLog.html', {'form': form, 'results': cost_factors_model, 'form_sub_success': results})
+            except ProductCostingFactors.DoesNotExist:
+                results = "Cost Factor not found."
+                return render(request, 'ps_blocks/rateUpdateLog.html', {'form': form, 'results': cost_factors_model, 'form_sub_dup': results})
+
     else:
-        form = ProductCostingFactorsform()  # Replace 'YourForm' with your actual form class name
+        form = ProductCostingFactorsform()
 
     return render(request, 'ps_blocks/costfactorspanel.html', {'results': cost_factors_model, 'categories': categories, 'suppliers': suppliers, 'form': form})
 
 
 
 
+@login_required
+def updatecostfactors(request):
+    categories = ProductCostMapping.objects.values_list('prodCategory', flat=True).distinct().order_by('prodCategory')
+    suppliers = Suppliers.objects.values_list('SupplierName', flat=True).distinct().order_by('SupplierName')
+    cost_factors_model = ProductCostingFactors.objects.order_by('StockCategory')
+    record_id = request.GET.get('record_id')
+    
+    if record_id is not None:
+        match_costfactor = ProductCostingFactors.objects.filter(id=record_id).first()
+        
+        if match_costfactor:
+            if request.method == 'POST':
+                form = UpdateProductCostingFactorsForm(request.POST)
+                
+                if form.is_valid():
+                    cf_supplier_name = request.POST.get('supplier_name')
+                    cf_currency = request.POST.get('currency')
+                    cf_calc_modifier = request.POST.get('calc_modifier')
+                    cf_duty = request.POST.get('duty')
+                    cf_freight = request.POST.get('freight_charges')
+                    cf_markup = request.POST.get('markup')
+                    cf_UpdatedBy = request.user
+                    cf_UpdatedOn = datetime.now()
 
+                    try:
+                        updated_cost_factor = ProductCostingFactors.objects.filter(id=record_id).update(
+                            SupplierName=cf_supplier_name,
+                            CurrencyCode=cf_currency,
+                            CalculationModifier=cf_calc_modifier,
+                            DutyFactor=cf_duty,
+                            FreightChargesFactor=cf_freight,
+                            MarkupFactor=cf_markup,
+                            UpdatedBy=cf_UpdatedBy,
+                            UpdatedOn=cf_UpdatedOn
+                        )
+
+                        if updated_cost_factor:
+                            form_sub_success = "Cost Factor Updated Successfully."
+                            return render(request, 'ps_blocks/costfactorspanel.html', {'form_sub_success': form_sub_success, 'results': cost_factors_model})
+                        else:
+                            form_sub_dup = "The specified cost factors were not found."
+                            return render(request, 'ps_blocks/costfactorspanel.html', {'form_sub_dup': form_sub_dup, 'results': cost_factors_model})
+
+                    except Exception as e:
+                        save_err = "Error saving to the database"
+                        return render(request, 'ps_blocks/costfactorspanel.html', {'save_err': save_err, 'form': form, 'results': cost_factors_model})
+
+            return render(request, 'ps_blocks/updatecostfactors.html', {'record_id': record_id, 'match_costfactor': match_costfactor, 'categories': categories, 'suppliers': suppliers})
+        else:
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER', reverse('costfactorspanel')))
+    else:
+        return HttpResponseRedirect(request.META.get('HTTP_REFERER', reverse('costfactorspanel')))
 
 
 
@@ -234,37 +323,56 @@ from .resources import pricelistResource
 from tablib import Dataset
 
 
+
+
 @login_required
 def uploadplist(request):
     suppliers = Suppliers.objects.values_list('SupplierName', flat=True).distinct().order_by('SupplierName')
+
     if request.method == 'POST':
-        if request.POST.get('supplier_name') and request.POST.get('pl_currency'):
-            pricelist_resource = pricelistResource()
-            dataset = Dataset()
-            new_pricelist = request.FILES['my_file']
-            imported_data = dataset.load(new_pricelist.read(), format='xlsx')
-            supplier_val = request.POST.get('supplier_name')
-            currency_val = request.POST.get('pl_currency')
-            count_empty_row = 0
-            count_inserted_row = 0
-            for data in imported_data:
-                if data[0] is not None and data[1] is not None:
-                    value = PriceList(
-                        data[0],
-                        data[1],
-                        data[2],
-                        currency_val,
-                        supplier_val
-                    )
-                    value.save()
-                    count_inserted_row += 1
-                else:
-                    count_empty_row += 1
+        supplier_name = request.POST.get('supplier_name')
+        pl_currency = request.POST.get('pl_currency')
 
-            success_message = f"{count_inserted_row} Rows inserted successfully and {count_empty_row} rows skipped."
-            return render(request, 'ps_blocks/uploadpricelist.html', {'success_message': success_message})
+        if supplier_name and pl_currency:
+            # Check if PriceList is empty
+            if PriceList.objects.exists():
+                error_message = "PriceList is not empty. Clear the current pricelist to upload."
+                return render(request, 'ps_blocks/uploadpricelist.html', {'error_message': error_message})
 
-    return render(request, 'ps_blocks/uploadpricelist.html', {'suppliers':suppliers})
+            # Load and process the uploaded file
+            uploaded_file = request.FILES.get('my_file')
+            if uploaded_file:
+                dataset = Dataset()
+                imported_data = dataset.load(uploaded_file.read(), format='xlsx')
+                count_empty_row = 0
+                count_inserted_row = 0
+
+                for data in imported_data:
+                    if all(data[:2]):  # Check if the first two columns are not empty
+                        price_list_entry = PriceList(
+                            #LTRIM(RTRIM(data[0])),
+                            data[0],
+                            data[1],
+                            data[2],
+                            pl_currency,
+                            supplier_name
+                        )
+                        price_list_entry.save()
+                        count_inserted_row += 1
+                    else:
+                        count_empty_row += 1
+
+                success_message = f"{count_inserted_row} rows inserted successfully and {count_empty_row} rows skipped."
+                return render(request, 'ps_blocks/uploadpricelist.html', {'success_message': success_message})
+            else:
+                error_message = "No file was uploaded."
+        else:
+            error_message = "Supplier name and currency are required."
+
+        return render(request, 'ps_blocks/uploadpricelist.html', {'error_message': error_message})
+
+    return render(request, 'ps_blocks/uploadpricelist.html', {'suppliers': suppliers})
+
 
 
 @login_required
@@ -318,7 +426,7 @@ def remoteinventoryaccess(request):
                 SELECT LTRIM(RTRIM(fldInventoryID)) AS prodID,
                        LTRIM(RTRIM(fldInventoryCode)) AS prodCode, 
                        fldDescription AS prodDesc, 
-                       fldCategoryDesc AS prodCategory, 
+                       LTRIM(RTRIM(fldCategoryDesc)) AS prodCategory, 
                        fldCreateDate AS prodDOC
                 FROM [nashua-eva].BPO2_NASH_PROD.dbo.vw_INVNInventory;
             """)
@@ -461,7 +569,7 @@ def bpoexclusiveaccess(request):
         cursor.execute("""
             SELECT LTRIM(RTRIM(fldInventoryCode)) AS prodCode, 
             fldDescription AS prodDesc, 
-            fldCategoryDesc AS prodCategory, 
+            LTRIM(RTRIM(fldCategoryDesc)) AS prodCategory, 
             fldCreateDate AS prodDOC
             FROM [nashua-eva].BPO2_NASH_PROD.dbo.vw_INVNInventory;
             """)
@@ -505,7 +613,7 @@ def xpressexclusiveaccess(request):
         cursor_remote.execute("""
             SELECT LTRIM(RTRIM(fldInventoryCode)) AS prodCode, 
             fldDescription AS prodDesc, 
-            fldCategoryDesc AS prodCategory, 
+            LTRIM(RTRIM(fldCategoryDesc)) AS prodCategory, 
             fldCreateDate AS prodDOC
             FROM [nashua-eva].BPO2_NASH_PROD.dbo.vw_INVNInventory
             """)
@@ -557,88 +665,99 @@ def lcostcalculations(request):
     rows_from_procostmapping = ProductCostMapping.objects.all()
 
     if request.method == 'POST':
-        selected_products_dataset = ProductCostMapping.objects.all()
+        if 'lcost_calculation' in request.POST:
+            selected_products_dataset = ProductCostMapping.objects.all()
 
-        if not selected_products_dataset.exists():
-            empty_list_msg = "There are no products ready for calculation"
-            return render(request, 'ps_blocks/lcostcalculation.html', {'results': rows_from_procostmapping, 'empty_list': empty_list_msg})
+            if not selected_products_dataset.exists():
+                empty_list_msg = "There are no products ready for calculation"
+                return render(request, 'ps_blocks/lcostcalculation.html', {'results': rows_from_procostmapping, 'count_error': empty_list_msg})
 
-        # Get the most recent USD conversion rate
-        get_usd_supplier_cost_exrate = ExchangeRate.objects.filter(rateBaseCurrency="ZAR", rateTargetCurrency="USD")
-        most_recent_rate = get_usd_supplier_cost_exrate.aggregate(max_date=Max('rateUpdatedOn'))
-        most_recent_rate_record = get_usd_supplier_cost_exrate.filter(rateUpdatedOn=most_recent_rate['max_date']).first()
+            # Get the most recent USD conversion rate
+            get_usd_supplier_cost_exrate = ExchangeRate.objects.filter(rateBaseCurrency="ZAR", rateTargetCurrency="USD")
+            most_recent_rate = get_usd_supplier_cost_exrate.aggregate(max_date=Max('rateUpdatedOn'))
+            most_recent_rate_record = get_usd_supplier_cost_exrate.filter(rateUpdatedOn=most_recent_rate['max_date']).first()
 
-        if most_recent_rate_record:
-            conversion_rate = most_recent_rate_record.rateValue
-        else:
-            rate_not_found_msg = "The Conversion Rate is not found"
-            return render(request, 'ps_blocks/lcostcalculation.html', {'results': rows_from_procostmapping, 'rate_not_found': rate_not_found_msg})
+            if most_recent_rate_record:
+                conversion_rate = most_recent_rate_record.rateValue
+            else:
+                rate_not_found_msg = "The Conversion Rate is not found"
+                return render(request, 'ps_blocks/lcostcalculation.html', {'results': rows_from_procostmapping, 'rate_not_found': rate_not_found_msg})
 
-        for prod_row in selected_products_dataset:
-            if prod_row.prodCategory and prod_row.prodSupplierCurrency == "ZAR" and not prod_row.prodSupplierCode.endswith("(L)"):
-                usd_supplier_cost = prod_row.prodSupplierCost / conversion_rate
-                matching_row_in_cost_factors = ProductCostingFactors.objects.filter(StockCategory=prod_row.prodCategory, CurrencyCode="ZAR")
+            for prod_row in selected_products_dataset:
+                if prod_row.prodCategory and prod_row.prodSupplierCurrency == "ZAR" and not prod_row.prodSupplierCode.endswith("(L)"):
+                    usd_supplier_cost = prod_row.prodSupplierCost / conversion_rate
+                    matching_row_in_cost_factors = ProductCostingFactors.objects.filter(StockCategory=prod_row.prodCategory, CurrencyCode="ZAR")
+                    #matching_row_in_cost_factors = ProductCostingFactors.objects.filter(StockCategory__icontains=prod_row.prodCategory, CurrencyCode="ZAR")
+                    #It calculates perfectly when the categories are static not variables.
 
-                if matching_row_in_cost_factors.count() != 1:
-                    count_error_msg = "Factor row not found or too many records found! Update in Cost Factor Panel"
-                    return render(request, 'ps_blocks/lcostcalculation.html', {'results': rows_from_procostmapping, 'count_error': count_error_msg})
+
+                    if matching_row_in_cost_factors:
+                        cost_factors = matching_row_in_cost_factors.first()
+                        duty = cost_factors.DutyFactor
+                        freight = cost_factors.FreightChargesFactor
+                        markup = cost_factors.MarkupFactor
+
+                        # Initialize landing_cost_usd and nashua_selling_price_usd with usd_supplier_cost
+                        landing_cost_usd = usd_supplier_cost
+                        nashua_selling_price_usd = usd_supplier_cost
+
+                        # Calculate landing_cost_usd by excluding variables with a value of 0
+                        if duty != 0:
+                            landing_cost_usd *= duty
+                            nashua_selling_price_usd *= duty
+                        if freight != 0:
+                            landing_cost_usd *= freight
+                            nashua_selling_price_usd *= freight
+                        if markup != 0:
+                            nashua_selling_price_usd *= markup
+
+
+
+                        prod_row.prodSupplierCostUSD = usd_supplier_cost
+                        prod_row.prodSupplierLandedCost_USD = landing_cost_usd
+                        prod_row.prodNashuaSellingPrice_USD = nashua_selling_price_usd
+                        prod_row.prodCalculatedPriceDate = datetime.now()
+                        prod_row.save()
+                elif prod_row.prodCategory and prod_row.prodSupplierCurrency == "USD" and prod_row.prodSupplierCode.endswith("(L)"):
+                    matching_row_in_cost_factors = ProductCostingFactors.objects.filter(StockCategory=prod_row.prodCategory, CurrencyCode="ZAR")
+
+                    if matching_row_in_cost_factors:
+                        cost_factors = matching_row_in_cost_factors.first()
+                        markup = cost_factors.MarkupFactor
+
+                        # Initialize landing_cost_usd and nashua_selling_price_usd with usd_supplier_cost
+                        landing_cost_usd = prod_row.prodSupplierCost
+                        nashua_selling_price_usd = prod_row.prodSupplierCost
+
+                        # Calculate landing_cost_usd by excluding variables with a value of 0
+                        if markup != 0:
+                            nashua_selling_price_usd *= markup
+
+
+
+                        prod_row.prodSupplierCostUSD = prod_row.prodSupplierCost
+                        prod_row.prodSupplierLandedCost_USD = landing_cost_usd
+                        prod_row.prodNashuaSellingPrice_USD = nashua_selling_price_usd
+                        prod_row.prodCalculatedPriceDate = datetime.now()
+                        prod_row.save()
+
+
+            success_calculation = "Landed Cost Calculated Successfully!"
+            return render(request, 'ps_blocks/lcostcalculation.html', {'results': rows_from_procostmapping, 'success_message': success_calculation})
+        elif 'delete_prod' in request.POST:
+            record_id = request.POST.get('record_id')  # Use POST to retrieve data sent from a form
+            
+            if record_id is not None:
+                match_costingprice = ProductCostMapping.objects.filter(prodID=record_id).first()
+                
+                if match_costingprice:
+                    match_costingprice.delete()
+                    results = f"Success! {match_costingprice.prodSupplierCode} removed successfully."
                 else:
-                    cost_factors = matching_row_in_cost_factors.first()
-                    duty = cost_factors.DutyFactor
-                    freight = cost_factors.FreightChargesFactor
-                    markup = cost_factors.MarkupFactor
-
-                    # Initialize landing_cost_usd and nashua_selling_price_usd with usd_supplier_cost
-                    landing_cost_usd = usd_supplier_cost
-                    nashua_selling_price_usd = usd_supplier_cost
-
-                    # Calculate landing_cost_usd by excluding variables with a value of 0
-                    if duty != 0:
-                        landing_cost_usd *= duty
-                        nashua_selling_price_usd *= duty
-                    if freight != 0:
-                        landing_cost_usd *= freight
-                        nashua_selling_price_usd *= freight
-                    if markup != 0:
-                        nashua_selling_price_usd *= markup
-
-
-
-                    prod_row.prodSupplierCostUSD = usd_supplier_cost
-                    prod_row.prodSupplierLandedCost_USD = landing_cost_usd
-                    prod_row.prodNashuaSellingPrice_USD = nashua_selling_price_usd
-                    prod_row.prodCalculatedPriceDate = datetime.now()
-                    prod_row.save()
-            elif prod_row.prodCategory and prod_row.prodSupplierCurrency == "USD" and prod_row.prodSupplierCode.endswith("(L)"):
-                matching_row_in_cost_factors = ProductCostingFactors.objects.filter(StockCategory=prod_row.prodCategory, CurrencyCode="ZAR")
-
-                if matching_row_in_cost_factors.count() != 1:
-                    count_error_msg = "Factor row not found or too many records found! Update in Cost Factor Panel"
-                    return render(request, 'ps_blocks/lcostcalculation.html', {'results': rows_from_procostmapping, 'count_error': count_error_msg})
-                else:
-                    cost_factors = matching_row_in_cost_factors.first()
-                    markup = cost_factors.MarkupFactor
-
-                    # Initialize landing_cost_usd and nashua_selling_price_usd with usd_supplier_cost
-                    landing_cost_usd = prod_row.prodSupplierCost
-                    nashua_selling_price_usd = prod_row.prodSupplierCost
-
-                    # Calculate landing_cost_usd by excluding variables with a value of 0
-                    if markup != 0:
-                        nashua_selling_price_usd *= markup
-
-
-
-                    prod_row.prodSupplierCostUSD = prod_row.prodSupplierCost
-                    prod_row.prodSupplierLandedCost_USD = landing_cost_usd
-                    prod_row.prodNashuaSellingPrice_USD = nashua_selling_price_usd
-                    prod_row.prodCalculatedPriceDate = datetime.now()
-                    prod_row.save()
-
-
-        success_calculation = "Landed Cost Calculated Successfully!"
-        return render(request, 'ps_blocks/lcostcalculation.html', {'results': rows_from_procostmapping, 'count_error': success_calculation})
-
+                    results = "Record not found."
+                
+                return render(request, 'ps_blocks/lcostcalculation.html', {'results': rows_from_procostmapping, 'count_error': results})
+            
     return render(request, 'ps_blocks/lcostcalculation.html', {'results': rows_from_procostmapping, 'suppliers': suppliers})
 
 
@@ -735,14 +854,55 @@ def lcostcalculations(request):
 
 
 
+@login_required
+def updatepricemapping(request):
+    # Configure logging
+    logging.basicConfig(filename='app.log', level=logging.ERROR)
+    rows_from_procostmapping = ProductCostMapping.objects.all()
+    record_id = request.GET.get('record_id')
+    
+    if record_id is not None:
+        match_costingprice = ProductCostMapping.objects.filter(prodID=record_id).first()
+        
+        if match_costingprice:
+            if request.method == 'POST':
+                form = UpdateProductCostMappingForm(request.POST)
+                
+                if form.is_valid():
+                    uc_supplier_code = request.POST.get('supplier_code')
+                    uc_nashua_code = request.POST.get('nashua_code')
+                    uc_supplier_name = request.POST.get('supplier_name')
+                    uc_calc_modifier = request.POST.get('calc_modifier')
+                    uc_currency = request.POST.get('currency')
+                    uc_supplier_cost = request.POST.get('supplier_cost')
+                    uc_UpdatedOn = datetime.now()
 
+                    try:
+                        updated_cost_mappings = ProductCostMapping.objects.filter(prodID=record_id).update(
+                            prodSupplierCode=uc_supplier_code,
+                            prodNashuaCode=uc_nashua_code,
+                            prodSupplierName=uc_supplier_name,
+                            prodCalculationModifier=uc_calc_modifier,
+                            prodSupplierCurrency=uc_currency,
+                            prodSupplierCost=uc_supplier_cost,
+                            prodCalculatedPriceDate=uc_UpdatedOn
+                            )
+                        if updated_cost_mappings:
+                            form_sub_success = "Costings Updated Successfully."
+                            return render(request, 'ps_blocks/lcostcalculation.html', {'success_message': form_sub_success, 'results': rows_from_procostmapping})
+                        else:
+                            form_sub_dup = "The specified costings were not found."
+                            return render(request, 'ps_blocks/lcostcalculation.html', {'rate_not_found': form_sub_dup, 'results': rows_from_procostmapping})
 
+                    except Exception as e:
+                        save_err = "Error saving to the database"
+                        return render(request, 'ps_blocks/lcostcalculation.html', {'save_err': save_err, 'form': form, 'results': rows_from_procostmapping})
 
-
-
-
-
-
+            return render(request, 'ps_blocks/updatepricemapping.html', {'record_id': record_id, 'match_costingprice': match_costingprice})
+        else:
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER', reverse('updatepricemapping')))
+    else:
+        return HttpResponseRedirect(request.META.get('HTTP_REFERER', reverse('updatepricemapping')))
 
 
 
@@ -770,6 +930,29 @@ def createaccount(request):
     # Configure logging
     logging.basicConfig(filename='app.log', level=logging.ERROR)
     if request.method == 'POST':
+        form = RegisterForm(request.POST)
+        if form.is_valid():
+            form.save()
+            success_mgs = "User account created successfully!"
+            return render(request, 'registration/sign_up.html', {'form':form,'form_sub_success':success_mgs}) 
+    else:
+        form = RegisterForm()
+    
+    return render(request, 'registration/sign_up.html', {'form':form}) 
+
+
+
+
+
+
+
+
+
+
+
+
+
+'''
         ca_firstname = request.POST.get('firstname')
         ca_lastname = request.POST.get('lastname')
         ca_username = request.POST.get('username')
@@ -785,7 +968,7 @@ def createaccount(request):
         ca_pwd = request.POST.get('pwd')
         hashed_password = make_password(ca_pwd)
         ca_profile_img = request.POST.get('profile_img')
-        ca_UpdatedBy = "Keegan Solomon" 
+        ca_UpdatedBy = request.user 
         ca_UpdatedOn = datetime.now() 
         # Format the datetime as a string
         formatted_ca_UpdatedOn = ca_UpdatedOn.strftime('%Y-%m-%d %H:%M:%S.%f %z')
@@ -852,7 +1035,7 @@ def createaccount(request):
 
 
 
-
+'''
 
 
 
@@ -865,7 +1048,10 @@ def createaccount(request):
 
 @login_required
 def usermgt(request):
-    return render(request, 'ps_blocks/under_maintenance.html')
+    # Configure logging
+    logging.basicConfig(filename='app.log', level=logging.ERROR)
+    userlist_rows = User.objects.all()
+    return render(request, 'ps_blocks/userslist.html', {'results': userlist_rows})
 
 @login_required
 def resetpwd(request):

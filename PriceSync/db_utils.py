@@ -6,7 +6,7 @@ def get_db_connection():
         server = 'NASHUA-WAYNE'
         database = 'NashuaXpressDB'
         username = 'wayne'
-        password = 'P@ssw0rd1234'
+        password = 'P@ssw0rd12346'
         driver = '{ODBC Driver 17 for SQL Server}'  
 
         # Create a connection string

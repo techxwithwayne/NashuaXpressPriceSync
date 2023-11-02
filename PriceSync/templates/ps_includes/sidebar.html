@@ -6,7 +6,7 @@
     <li class="submenu-open">
     <h6 class="submenu-hdr">Main</h6>
     <ul>
-    <li class="active">
+    <li {% if active_block == "block1" %}class="active"{% endif %}>
     <a href="{% url 'dashboard' %}"><i data-feather="grid"></i><span>Dashboard</span></a>
     </li>
 
@@ -15,8 +15,8 @@
     <li class="submenu">
         <a href="javascript:void(0);"><i data-feather="layers"></i><span>Manage Pricelist</span><span class="menu-arrow"></span></a>
         <ul>
-        <li><a href="{% url 'uploadpricelist' %}">Upload Pricelist</a></li>
-        <li><a href="{% url 'pricelist' %}">View Current Pricelist</a></li>
+        <li {% if active_block == "block1" %}class="active"{% endif %} ><a href="{% url 'uploadpricelist' %}">Upload Pricelist</a></li>
+        <li {% if active_block == "block1" %}class="active"{% endif %} ><a href="{% url 'pricelist' %}">View Current Pricelist</a></li>
         </ul>
         </li>
     </ul>
@@ -26,17 +26,17 @@
     <li class="submenu-open">
     <h6 class="submenu-hdr">Rate and Pricing Factors</h6>
     <ul>
-    <li><a href="{% url 'rateupdatelog' %}"><i data-feather="box"></i><span>Update Rates</span></a></li>
-    <li><a href="{% url 'costfactorspanel' %}"><i data-feather="codepen"></i><span>Cost Factors Panel</span></a></li>
+    <li {% if active_block == "block1" %}class="active"{% endif %} ><a href="{% url 'rateupdatelog' %}"><i data-feather="box"></i><span>Update Rates</span></a></li>
+    <li {% if active_block == "block1" %}class="active"{% endif %} ><a href="{% url 'costfactorspanel' %}"><i data-feather="codepen"></i><span>Cost Factors Panel</span></a></li>
     </ul>
     </li>
     <li class="submenu-open">
     <h6 class="submenu-hdr">Inventory Management</h6>
     <ul>
-    <li><a href="{% url 'bpoinventory' %}"><i data-feather="database"></i><span>BPO Inventory</span></a></li>
-    <li><a href="{% url 'xpressinventory' %}"><i data-feather="copy"></i><span>Xpress Inventory</span></a></li>
-    <li><a href="{% url 'bpoexclusive' %}"><i data-feather="file-text"></i><span>BPO-Exclusive</span></a></li>
-    <li><a href="{% url 'xpressexclusive' %}"><i data-feather="file-text"></i><span>Xpress-Exclusive</span></a></li>
+    <li {% if active_block == "block1" %}class="active"{% endif %} ><a href="{% url 'bpoinventory' %}"><i data-feather="database"></i><span>BPO Inventory</span></a></li>
+    <li {% if active_block == "block1" %}class="active"{% endif %} ><a href="{% url 'xpressinventory' %}"><i data-feather="copy"></i><span>Xpress Inventory</span></a></li>
+    <li {% if active_block == "block1" %}class="active"{% endif %} ><a href="{% url 'bpoexclusive' %}"><i data-feather="file-text"></i><span>BPO-Exclusive</span></a></li>
+    <li {% if active_block == "block1" %}class="active"{% endif %} ><a href="{% url 'xpressexclusive' %}"><i data-feather="file-text"></i><span>Xpress-Exclusive</span></a></li>
     </ul>
     </li>
 
@@ -45,36 +45,37 @@
         <li class="submenu-open">
         <h6 class="submenu-hdr">Sales Pricing Management</h6>
         <ul>    
-        <li><a href="{% url 'syncinventory' %}"><i data-feather="refresh-cw"></i><span>Supplier Cost Sync</span></a></li>
-        <li><a href="{% url 'calculatecost' %}"><i data-feather="shuffle"></i><span>L/Cost Calculation</span></a></li>
-        <li><a href="{% url 'inventory' %}"><i data-feather="file"></i><span>Inventory Pricing</span></a></li>
+        <li {% if active_block == "block1" %}class="active"{% endif %} ><a href="{% url 'syncinventory' %}"><i data-feather="refresh-cw"></i><span>Supplier Cost Sync</span></a></li>
+        <li {% if active_block == "block1" %}class="active"{% endif %} ><a href="{% url 'calculatecost' %}"><i data-feather="shuffle"></i><span>L/Cost Calculation</span></a></li>
+        <li {% if active_block == "block1" %}class="active"{% endif %} ><a href="{% url 'inventory' %}"><i data-feather="file"></i><span>Inventory Pricing</span></a></li>
         </ul>
         </li>
 
 
-
+        {% if user.is_superuser %}
     <li class="submenu-open">
     <h6 class="submenu-hdr">User Management</h6>
     <ul>
         <li class="submenu">
         <a href="javascript:void(0);"><i data-feather="users"></i><span>Manage Users</span><span class="menu-arrow"></span></a>
         <ul>
-        <li><a href="{% url 'createuser' %}">Create User Account</a></li>
-        <li><a href="{% url 'users' %}">User Management</a></li>
+        <li {% if active_block == "block1" %}class="active"{% endif %} ><a href="{% url 'createuser' %}">Create User Account</a></li>
+        <li {% if active_block == "block1" %}class="active"{% endif %} ><a href="{% url 'users' %}">User Management</a></li>
         </ul>
         </li>
     </ul>
     </li>
+    {% endif %}
     <li class="submenu-open">
     <h6 class="submenu-hdr">User Activity Log</h6>
     <ul>
-        <li>
+        <li {% if active_block == "block1" %}class="active"{% endif %} >
             <a href="{% url 'accesslog' %}"><i data-feather="database"></i><span>System Access Log</span> </a>
             </li>
-            <li>
+            <li {% if active_block == "block1" %}class="active"{% endif %} >
                 <a href="{% url 'activitylog' %}"><i data-feather="layers"></i><span>View Activity Log</span> </a>
                 </li>
-                <li>
+                <li {% if active_block == "block1" %}class="active"{% endif %} >
                     <a href="{% url 'auditconfigs' %}"><i data-feather="pen-tool"></i><span>Audit Trail Configs</span> </a>
                     </li>
     </ul>
@@ -82,16 +83,16 @@
     <li class="submenu-open">
         <h6 class="submenu-hdr">Help and Support</h6>
         <ul>
-        <li>
+        <li {% if active_block == "block1" %}class="active"{% endif %} >
         <a href="{% url 'documentation' %}"><i data-feather="map"></i><span>Documentation</span> </a>
         </li>
-        <li>
+        <li {% if active_block == "block1" %}class="active"{% endif %} >
         <a href="{% url 'faqs' %}"><i data-feather="file-minus"></i><span>FAQs</span> </a>
         </li>
-        <li>
+        <li {% if active_block == "block1" %}class="active"{% endif %} >
             <a href="{% url 'support' %}"><i data-feather="shield"></i><span>Contact Support</span> </a>
             </li>
-            <li>
+            <li {% if active_block == "block1" %}class="active"{% endif %} >
                 <a href="{% url 'release' %}"><i data-feather="file"></i><span>Release Notes</span> </a>
                 </li>
         </ul>
@@ -102,12 +103,12 @@
     <li class="submenu">
     <a href="javascript:void(0);"><i data-feather="settings"></i><span>Settings</span><span class="menu-arrow"></span></a>
     <ul>
-    <li><a href="{% url 'system' %}">System Configuration</a></li>
-    <li><a href="{% url 'security' %}">Security and Permissions</a></li>
-    <li><a href="{% url 'HostCenter' %}">Backup and Restore</a></li>
+    <li {% if active_block == "block1" %}class="active"{% endif %} ><a href="{% url 'system' %}">System Configuration</a></li>
+    <li {% if active_block == "block1" %}class="active"{% endif %} ><a href="{% url 'security' %}">Security and Permissions</a></li>
+    <li {% if active_block == "block1" %}class="active"{% endif %} ><a href="{% url 'HostCenter' %}">Backup and Restore</a></li>
     </ul>
     </li>
-    <li>
+    <li {% if active_block == "block1" %}class="active"{% endif %} >
     <a href="{% url 'login' %}"><i data-feather="log-out"></i><span>Logout</span> </a>
     </li>
     </ul>

@@ -23,19 +23,21 @@ from .views import CustomLoginView
 from django.contrib.auth.views import LogoutView
 
 urlpatterns = [
-   path('admin/', admin.site.urls),
+   #path('admin/', admin.site.urls),
    path('', views.dashboard, name='dashboard'),
    path('login', CustomLoginView.as_view(), name='login'),
    path('logout', LogoutView.as_view(next_page = 'login'), name='logout'),
    path('register', views.signup, name='register'),
    path('rateupdatelog', views.rateupdate, name='rateupdatelog'),
    path('costfactorspanel', views.costfactors, name='costfactorspanel'),
+   path('updatecostfactor', views.updatecostfactors, name='updatecostfactor'),
    path('uploadpricelist', views.uploadplist, name='uploadpricelist'),
    path('pricelist', views.viewpricelist, name='pricelist'),
    path('rates', views.updatecurrencyrates, name='rates'),
    path('syncinventory', views.syncinventorydata, name='syncinventory'),
    path('inventory', views.inventorypricing, name='inventory'),
    path('calculatecost', views.lcostcalculations, name='calculatecost'),
+   path('updatepricemapping', views.updatepricemapping, name='updatepricemapping'),
    path('integrationsettings', views.integrationsetting, name='integrationsettings'),
    path('BPOreporting', views.BPOreports, name='BPOreporting'),
    path('createuser', views.createaccount, name='createuser'),

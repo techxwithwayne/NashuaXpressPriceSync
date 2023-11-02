@@ -8,7 +8,7 @@
     </div>
     <form method="POST">
         {% csrf_token %}
-    <button type="submit" class="btn btn-added"><img src="{% static 'assets/img/icons/download.svg' %}" alt="img" class="me-1">Calculate Landing Cost</button>
+    <button type="submit" name="lcost_calculation" class="btn btn-added"><img src="{% static 'assets/img/icons/download.svg' %}" alt="img" class="me-1">Calculate Landing Cost</button>
 </form>
     </div>
 
@@ -35,6 +35,15 @@
     <div class="container">
         <div class="notice notice-danger">
             <strong>{{ missing_fields }}</strong>
+        </div>
+    </div>
+    {% endif %}
+
+    
+    {% if count_error %}
+    <div class="container">
+        <div class="notice notice-danger">
+            <strong>{{ count_error }}</strong>
         </div>
     </div>
     {% endif %}
@@ -152,20 +161,9 @@
                         <td>{{ data.prodSupplierLandedCost_USD }}</td>
                         <td>{{ data.prodNashuaSellingPrice_USD }}</td>
                         <td class="text-center">
-                        <a class="action-set" href="javascript:void(0);" data-bs-toggle="dropdown" aria-expanded="true">
-                        <i class="fa fa-ellipsis-v" aria-hidden="true"></i>
-                        </a>
-                        <ul class="dropdown-menu">
-                        <li>
-                        <a href="sales-details.html" class="dropdown-item"><img src="{% static "assets/img/icons/eye1.svg" %}" class="me-2" alt="img">View Details</a>
-                        </li>
-                        <li>
-                        <a href="edit-sales.html" class="dropdown-item"><img src="{% static "assets/img/icons/edit.svg" %}" class="me-2" alt="img">Edit</a>
-                        </li>
-                        <li>
-                        <a href="javascript:void(0);" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#showpayment"><img src="{% static "assets/img/icons/delete1.svg" %}" class="me-2" alt="img">Delete</a>
-                        </li>
-                        </ul>
+                            <a href="{% url 'updatepricemapping' %}?record_id={{ data.prodID }}" class="me-3 confirm-text" style="border: 0; background: none;">
+                                <img src="/static/assets/img/icons/edit.svg" alt="img">
+                            </a>
                         </td>
                         </tr>
                         {% endfor %}

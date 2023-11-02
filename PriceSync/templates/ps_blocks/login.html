@@ -17,6 +17,7 @@
 <link rel="stylesheet" href="{% static 'assets/plugins/fontawesome/css/fontawesome.min.css' %}">
 <link rel="stylesheet" href="{% static 'assets/plugins/fontawesome/css/all.min.css' %}">
 <link rel="stylesheet" href="{% static 'assets/css/style.css' %}">
+<link rel="stylesheet" href="{% static 'assets/alert/css/alert.css' %}">
 </head>
 </head>
 <body class="account-page">
@@ -31,39 +32,36 @@
 </div>
 <form method="post">
     {% csrf_token %}
-    {{ form.as_p }}
-    <!--
 <div class="login-userheading">
 <h3>Account Login</h3>
 <h4>Please enter your login information to proceed.</h4>
 </div>
+{% if failed %}
+    <div class="container">
+        <div class="notice notice-danger">
+            <strong>{{ failed }}</strong>
+        </div>
+    </div>
+    {% endif %}
 <div class="form-login">
 <label>Email</label>
 <div class="form-addons">
-<input type="text" placeholder="Enter your email address">
+<input type="text" name="username" placeholder="Enter your email address" autofocus autocapitalize="none" autocomplete="username" maxlength="150" required id="id_username">
 <img src="{% static 'assets/img/icons/mail.svg' %}" alt="img">
 </div>
 </div>
 <div class="form-login">
 <label>Password</label>
 <div class="pass-group">
-<input type="password" class="pass-input" placeholder="Enter your password">
+<input type="password" class="pass-input" placeholder="Enter your password" name="password" autocomplete="current-password" required id="id_password">
 <span class="fas toggle-password fa-eye-slash"></span>
 </div>
 </div>
-<div class="form-login">
-<div class="alreadyuser">
-<h4><a href="forgetpassword.html" class="hover-a">Forgot Password?</a></h4>
-</div>
-</div>
--->
+
 <div class="form-login">
 <button type="submit" class="btn btn-login">Sign in</button>
 </div>
 </form>
-<div class="signinform text-center">
-<h4>Don’t have an account? <a href="{% url 'register' %}" class="hover-a">Sign Up</a></h4>
-</div>
 </div>
 </div>
 <div class="login-img">
@@ -73,6 +71,7 @@
 </div>
 </div>
 
+<script src="{% static 'assets/alert/js/alert.js' %}"></script>
 <script src="{% static 'assets/js/jquery-3.6.0.min.js' %}"></script>
 <script src="{% static 'assets/js/feather.min.js' %}"></script>
 <script src="{% static 'assets/js/bootstrap.bundle.min.js' %}"></script>

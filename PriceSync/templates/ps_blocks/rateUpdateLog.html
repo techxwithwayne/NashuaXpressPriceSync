@@ -8,9 +8,11 @@
     <h4>Daily Currency Exchange Rates</h4>
     <h6>Stay updated with the latest currency exchange rates.</h6>
     </div>
+    {% if user.is_superuser %}
     <div class="page-btn">
     <a href="#" class="btn btn-added" data-bs-toggle="modal" data-bs-target="#addpayment"><img src="{% static 'assets/img/icons/plus.svg' %}" alt="img" class="me-1">Add Daily Currency Rate</a>
     </div>
+    {% endif %}
     </div>
 
 {% if form_sub_dup %}
@@ -123,7 +125,9 @@
                 <th>Daily Sales Rate</th>
                 <th>Updated By</th>
                 <th>Updated On</th>
+                {% if user.is_superuser %}
                 <th class="text-center">Action</th>
+                {% endif %}
             </tr>
         </thead>
         <tbody>
@@ -135,6 +139,7 @@
                 <td class="text-red">{{ data.rateValue }}</td>
                 <td>{{ data.rateUpdatedOn }}</td>
                 <td>{{ data.rateUpdatedBy }}</td>
+                {% if user.is_superuser %}
                 <td class="text-center">
                     <form method="post">
                         {% csrf_token %}
@@ -146,6 +151,7 @@
                         </button>
                     </form>
                 </td>
+                {% endif %}
             </tr>
             {% endfor %}
         </tbody>

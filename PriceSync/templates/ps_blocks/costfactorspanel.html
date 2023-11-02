@@ -85,22 +85,27 @@
                         <td>{{ data.DutyFactor }}</td>
                         <td class="text-green">{{ data.FreightChargesFactor }}</td>
                         <td class="text-red">{{ data.MarkupFactor }}</td>
-                        <td class="text-center">
-                                <a class="me-3" href="#">
-                                <img src="{% static 'assets/img/icons/edit.svg' %}" alt="img">
-                                </a>
-                                <a class="me-3 confirm-text" href="javascript:void(0);">
-                                <img src="{% static 'assets/img/icons/delete.svg' %}" alt="img">
-                                </a>
+                        
+
+                                <td class="text-center">
+                                    <form method="post">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="category" value="{{ data.StockCategory }}">
+                                        <input type="hidden" name="supplier" value="{{ data.SupplierName }}">
+                                        <input type="hidden" name="currency" value="{{ data.CurrencyCode }}">
+                                        <input type="hidden" name="c_modifier" value="{{ data.CalculationModifier }}">
+                                        <a href="{% url 'updatecostfactor' %}?record_id={{ data.id }}" class="me-3 confirm-text" style="border: 0; background: none;">
+                                            <img src="{% static 'assets/img/icons/edit.svg' %}" alt="img">
+                                        </a>
+                                                                               
+                                        <button type="submit" name="delete_cost_factor" class="me-3 confirm-text" style="border:0;background:none;" href="javascript:void(0);">
+                                            <img src="{% static 'assets/img/icons/delete.svg' %}" alt="img">
+                                        </button>
+                                    </form>
                                 </td>
+                                
                         </tr>
                         {% endfor %}
-                
-                
-                
-                
-                
-                        
                         </tbody>
                         </table>
                         </div>
@@ -182,7 +187,7 @@
                                 </div>
                             </div>
                             <div class="col-lg-12">
-                            <button type="submit" class="btn btn-submit me-2">Create New Factor</button>
+                            <button type="submit" name="create_new_factor" class="btn btn-submit me-2">Create New Factor</button>
                             <a class="btn btn-cancel" data-bs-dismiss="modal">Cancel</a>
                             </div>
                             </div>

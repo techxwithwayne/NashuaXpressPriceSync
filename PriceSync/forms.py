@@ -1,6 +1,8 @@
 from django import forms
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import User
 from django.forms import ModelForm
-from .models import PriceList, ExchangeRate, ProductCostingFactors, User
+from .models import PriceList, ExchangeRate, ProductCostingFactors, ProductCostMapping
 
 #create forms below
 class pricelistform(ModelForm):
@@ -39,7 +41,49 @@ class ExchangeRateForm(ModelForm):
 class Userform(forms.Form):
     class meta:
         model = User
+        fields = ['username', 'password']
+        # create labels, widgets dictionary
+        labels = {
+            'username': '',
+            'password': ''
+        }
+       
+        widgets = {
+            'username': forms.DateInput(attrs={'class':'form-control', 'type':'date', 'required':'required'}),
+            'password': forms.TextInput(attrs={'class':'form-control', 'id':'decimalInput', 'oninput':"validateDecimal(this)", 'required':'required'})
+        }
+
+class UpdateProductCostingFactorsForm(forms.Form):
+    class meta:
+        model = ProductCostingFactors
         fields = '__all__'
+
+
+
+class UpdateProductCostingFactorsForm(forms.Form):
+    class Meta:
+        model = ProductCostingFactors
+        exclude = ['StockCategory'] 
+
+class UpdateProductCostMappingForm(forms.Form):
+    class Meta:
+        model = ProductCostMapping
+        exclude = ['StockCategory'] 
+'''
+        prodID
+prodSupplierCode
+prodNashuaCode
+prodDesc
+prodCategory
+prodSupplierName
+prodSupplierCurrency
+prodCalculationModifier
+prodSupplierCost
+prodSupplierCostUSD
+prodSupplierLandedCost_USD
+prodNashuaSellingPrice_USD
+prodCalculatedPriceDatex
+'''
 
 # spot the difference between ModelForm and forms.Form
 class ProductCostingFactorsform(forms.Form):
@@ -82,3 +126,37 @@ class ProductCostingFactorsform(forms.Form):
 
         '''
 
+
+class RegisterForm(UserCreationForm):
+    email = forms.EmailField(required=True)
+    first_name = forms.CharField(max_length=150, required=True)
+    last_name = forms.CharField(max_length=150, required=True)
+
+    bool_choice = [('True', 'True'), ('False', 'False')]
+
+
+    is_staff = forms.ChoiceField(
+        choices=bool_choice,
+        widget=forms.Select(attrs={'class': 'form-control col-lg-6 col-sm-12 col-12'}),label='Is user staff')
+    
+    is_active = forms.ChoiceField(
+        choices=bool_choice,
+        widget=forms.Select(attrs={'class': 'form-control col-lg-6 col-sm-12 col-12'}),label='Is account active')
+    
+    is_superuser = forms.ChoiceField(
+        choices=bool_choice,
+        widget=forms.Select(attrs={'class': 'form-control col-lg-6 col-sm-12 col-12'}),label='Is account administrative')
+
+    class Meta:
+        model = User
+        fields = ["username", "first_name", "last_name", "is_staff", "is_active", "is_superuser", "email", "password1", "password2"]
+
+       
+        widgets = {
+            'email': forms.TextInput(attrs={'class':'form-control', 'required':'required'}),
+            'first_name': forms.TextInput(attrs={'class':'form-control', 'required':'required'}),
+            'last_name': forms.TextInput(attrs={'class':'form-control', 'required':'required'}),
+            'username': forms.TextInput(attrs={'class':'form-control', 'required':'required'}),
+            'password1': forms.TextInput(attrs={'class':'form-control', 'required':'required'}),
+            'password2': forms.TextInput(attrs={'class':'form-control', 'required':'required'}),
+        }
